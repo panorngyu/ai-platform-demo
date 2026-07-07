@@ -45,8 +45,7 @@ const statusOptions = [
 
 const sortOptions = [
   { label: '按时间', value: 'time' },
-  { label: '按紧急程度', value: 'urgency' },
-  { label: '按金额', value: 'amount' }
+  { label: '按紧急程度', value: 'urgency' }
 ]
 
 // ============ 统计卡片 ============
@@ -112,11 +111,6 @@ function urgencyTag(u?: string) {
     low: { type: 'info', text: '低' }
   }
   return u ? map[u] || { type: 'info', text: u } : null
-}
-
-function formatAmount(amount?: number) {
-  if (amount === undefined || amount === null) return '—'
-  return '¥' + amount.toLocaleString('zh-CN', { minimumFractionDigits: 2 })
 }
 
 function formatTime(t?: string) {
@@ -502,14 +496,6 @@ onMounted(() => {
 
         <el-table-column label="来源系统" prop="sourceSystem" width="120" show-overflow-tooltip />
 
-        <el-table-column label="金额" width="130" align="right">
-          <template #default="{ row }">
-            <span :class="['amount', row.amount >= 100000 ? 'amount-large' : '']">
-              {{ formatAmount(row.amount) }}
-            </span>
-          </template>
-        </el-table-column>
-
         <el-table-column label="紧急度" width="90" align="center">
           <template #default="{ row }">
             <el-tag
@@ -610,10 +596,6 @@ onMounted(() => {
               <el-tag :type="typeTag(item.type).type as any" size="small">
                 {{ typeTag(item.type).text }}
               </el-tag>
-            </div>
-            <div class="m-row">
-              <span class="m-label">金额</span>
-              <span class="m-amount">{{ formatAmount(item.amount) }}</span>
             </div>
             <div class="m-row">
               <span class="m-label">申请人</span>
@@ -723,11 +705,6 @@ onMounted(() => {
           <el-table-column label="标题" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">
               <span class="ai-result-title">{{ row.title }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="金额" width="110" align="right">
-            <template #default="{ row }">
-              ¥{{ (row.amount || 0).toLocaleString() }}
             </template>
           </el-table-column>
           <el-table-column label="风险等级" width="90" align="center">
@@ -903,15 +880,6 @@ onMounted(() => {
 .ai-icon {
   color: var(--accent);
 }
-.amount {
-  font-weight: 500;
-  color: var(--text-primary);
-}
-.amount-large {
-  color: var(--accent);
-  font-weight: 600;
-}
-
 .pagination {
   display: flex;
   justify-content: flex-end;
@@ -964,10 +932,6 @@ onMounted(() => {
 }
 .m-label {
   color: var(--text-secondary);
-}
-.m-amount {
-  color: var(--accent);
-  font-weight: 600;
 }
 .m-card-footer {
   display: flex;
