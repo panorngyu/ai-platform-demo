@@ -38,6 +38,57 @@ const mockTodos: any[] = [
     dueAt: new Date(Date.now() + 24 * 3600 * 1000),
     createdAt: new Date(Date.now() - 72 * 3600 * 1000),
     updatedAt: new Date(Date.now() - 72 * 3600 * 1000)
+  },
+  // ===== 新增模拟数据：让待办中心更丰富，覆盖不同类型/状态/紧急度 =====
+  {
+    id: 5, title: '旧办公车辆资产处置审批', source: '资产系统', type: 'asset',
+    priority: 'normal', urgency: 'medium', amount: 86000, applicantId: 4, applicantName: '王采购',
+    department: '采购部', status: 'pending', isTimeout: false, isUrgent: false,
+    summary: 'AI摘要：资产账面净值12.3万，处置方式为公开拍卖，预估回收8.6万，残值率约70%。',
+    submittedAt: new Date(Date.now() - 2 * 3600 * 1000),
+    dueAt: new Date(Date.now() + 3 * 24 * 3600 * 1000),
+    createdAt: new Date(Date.now() - 2 * 3600 * 1000),
+    updatedAt: new Date(Date.now() - 2 * 3600 * 1000)
+  },
+  {
+    id: 6, title: '2026年度IT设备批量采购申请', source: '采购系统', type: 'purchase',
+    priority: 'high', urgency: 'high', amount: 456000, applicantId: 2, applicantName: '张财务',
+    department: '财务部', status: 'pending', isTimeout: false, isUrgent: true,
+    summary: 'AI摘要：采购清单含笔记本40台、显示器60台，单价均在集采目录内，总额低于年度IT预算上限。',
+    submittedAt: new Date(Date.now() - 12 * 3600 * 1000),
+    dueAt: new Date(Date.now() + 2 * 24 * 3600 * 1000),
+    createdAt: new Date(Date.now() - 12 * 3600 * 1000),
+    updatedAt: new Date(Date.now() - 12 * 3600 * 1000)
+  },
+  {
+    id: 7, title: '华南大区Q3差旅费用报销', source: '财务系统', type: 'expense',
+    priority: 'normal', urgency: 'low', amount: 23600, applicantId: 5, applicantName: '陈销售',
+    department: '销售部', status: 'processing', isTimeout: false, isUrgent: false,
+    summary: 'AI摘要：共12笔差旅，票据齐全，超出标准部分380元已在备注中说明。',
+    submittedAt: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+    dueAt: new Date(Date.now() + 4 * 24 * 3600 * 1000),
+    createdAt: new Date(Date.now() - 3 * 24 * 3600 * 1000),
+    updatedAt: new Date(Date.now() - 24 * 3600 * 1000)
+  },
+  {
+    id: 8, title: 'IT运维外包服务合同审批（供应商：某科技）', source: '合同系统', type: 'contract',
+    priority: 'high', urgency: 'high', amount: 680000, applicantId: 3, applicantName: '李法务',
+    department: '法务部', status: 'pending', isTimeout: true, isUrgent: true,
+    summary: 'AI摘要：合同期2年，含SLA条款与违约责任，风险点为自动续约条款需补充终止通知期。',
+    submittedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+    dueAt: new Date(Date.now() - 6 * 3600 * 1000),
+    createdAt: new Date(Date.now() - 5 * 24 * 3600 * 1000),
+    updatedAt: new Date(Date.now() - 5 * 24 * 3600 * 1000)
+  },
+  {
+    id: 9, title: '智能制造数字化转型咨询项目立项', source: '项目系统', type: 'project',
+    priority: 'normal', urgency: 'medium', amount: 980000, applicantId: 6, applicantName: '赵技术',
+    department: '技术部', status: 'pending', isTimeout: false, isUrgent: false,
+    summary: 'AI摘要：咨询周期6个月，交付物含现状诊断、蓝图设计与落地路线图，金额接近同类项目均价。',
+    submittedAt: new Date(Date.now() - 4 * 3600 * 1000),
+    dueAt: new Date(Date.now() + 7 * 24 * 3600 * 1000),
+    createdAt: new Date(Date.now() - 4 * 3600 * 1000),
+    updatedAt: new Date(Date.now() - 4 * 3600 * 1000)
   }
 ]
 
