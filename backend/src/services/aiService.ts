@@ -118,15 +118,87 @@ export const aiService = {
     }
   },
 
-  mockRisk(_documentContent: string, _rules: any[]): any {
-    return {
-      riskLevel: 'medium',
-      analysis: '风险分析：1. 金额接近预算阈值，建议核实；2. 单据附件完整性需确认；3. 申请人资质符合要求。整体风险等级为中等，建议审批人重点关注金额与预算科目。',
-      points: [
-        { level: 'medium', description: '金额接近预算阈值' },
-        { level: 'low', description: '附件完整性需确认' },
-        { level: 'low', description: '申请人资质符合要求' }
+  mockRisk(documentContent: string, _rules: any[]): any {
+    // 根据单据类型生成差异化的风险评估数据
+    const isContract = documentContent.includes('合同')
+    const isExpense = documentContent.includes('报销')
+    const isPurchase = documentContent.includes('采购')
+    const isProject = documentContent.includes('项目')
+
+    const riskTemplates: Record<string, {
+      level: 'low' | 'medium' | 'high'
+      score: number
+      risks: Array<{ level: string; type: string; description: string; suggestion: string }>
+      conclusion: string
+    }> = {
+      contract: {
+        level: 'medium',
+        score: 62,
+        risks: [
+          { level: 'high', type: '合规风险', description: '合同条款中违约责任约定不够明确，缺少具体赔偿标准与上限，可能造成公司利益受损', suggestion: '建议补充违约赔偿计算方式与赔偿上限条款，并明确约定管辖法院' },
+          { level: 'medium', type: '金额风险', description: '合同金额较大，付款周期较长，预付款比例偏高（30%），存在资金回收风险', suggestion: '建议将预付款比例调整为20%以下，并增加分期付款节点与验收确认机制' },
+          { level: 'medium', type: '资质风险', description: '供应商资质文件不完整，缺少近三年财务审计报告和行业资质认证', suggestion: '建议要求供应商补充财务审计报告、行业资质证书及相关经营许可证明' },
+          { level: 'low', type: '流程风险', description: '合同签署流程中缺少法务审核环节，合同条款未经专业法律审查', suggestion: '建议在合同签署前增加法务审核节点，确保条款合法合规' },
+          { level: 'low', type: '时效风险', description: '合同有效期约定模糊，缺少明确的起止日期和续签条件', suggestion: '建议明确约定合同起止日期、自动续签条款及终止通知期限' }
+        ],
+        conclusion: '该合同存在中等合规风险，主要问题集中在违约责任条款不明确和付款比例偏高。建议补充违约赔偿细则、降低预付款比例，并完成法务审核后再行审批。'
+      },
+      expense: {
+        level: 'low',
+        score: 28,
+        risks: [
+          { level: 'medium', type: '金额风险', description: '报销金额超出部门月度预算10%，可能影响后续费用开支', suggestion: '建议核实预算余额，如超出可申请临时预算追加或分月报销' },
+          { level: 'low', type: '凭证风险', description: '报销附件中发票日期与报销申请日期间隔超过30天，存在时效性疑问', suggestion: '建议附上延迟报销的合理说明，如出差在外等原因' },
+          { level: 'low', type: '合规风险', description: '报销科目与实际业务关联性需进一步确认，餐饮报销缺少会议/出差关联记录', suggestion: '建议补充会议通知或出差审批单作为关联凭证' }
+        ],
+        conclusion: '该报销单风险较低，金额略超预算但整体可控。建议核实预算余额并补充出差关联凭证后可审批通过。'
+      },
+      purchase: {
+        level: 'medium',
+        score: 55,
+        risks: [
+          { level: 'high', type: '合规风险', description: '采购金额超过10万元但未走公开招标流程，不符合公司采购管理制度要求', suggestion: '建议补充三家比价记录或转为公开招标流程，确保采购合规性' },
+          { level: 'medium', type: '预算风险', description: '采购金额占部门年度预算的35%，预算占用比例偏高', suggestion: '建议评估年度剩余预算及后续采购计划，避免预算超支' },
+          { level: 'medium', type: '供应商风险', description: '指定供应商与申请人部门存在历史合作关系，可能存在利益关联', suggestion: '建议增加供应商筛选透明度，确保至少三家供应商参与比价' },
+          { level: 'low', type: '交付风险', description: '采购合同中交付验收标准不够具体，缺少性能指标与验收条件', suggestion: '建议细化验收标准和交付物清单，明确性能指标与验收测试方案' }
+        ],
+        conclusion: '该采购申请存在中等风险，主要问题是未走招标流程和供应商选择可能存在利益关联。建议补充比价流程、完善验收标准后再行审批。'
+      },
+      project: {
+        level: 'low',
+        score: 35,
+        risks: [
+          { level: 'medium', type: '进度风险', description: '项目里程碑时间节点安排较为紧凑，部分关键节点缺少缓冲时间', suggestion: '建议在关键里程碑间增加5-10天缓冲期，降低延期风险' },
+          { level: 'low', type: '人员风险', description: '项目核心团队成员同时参与多个项目，人力投入可能不足', suggestion: '建议确认核心成员工时分配，确保关键角色有足够投入' },
+          { level: 'low', type: '预算风险', description: '项目预算中应急预留比例为5%，低于行业建议的10-15%', suggestion: '建议将应急预留比例提高至10%，覆盖潜在需求变更风险' }
+        ],
+        conclusion: '该项目审批风险较低，建议关注进度安排和人员投入，适当增加应急预算后可审批通过。'
+      }
+    }
+
+    // 默认模板（无法匹配类型时使用）
+    const defaultTemplate = {
+      level: 'medium' as const,
+      score: 45,
+      risks: [
+        { level: 'medium', type: '合规风险', description: '单据信息与公司审批制度存在部分不符，需要进一步核实关键要素', suggestion: '建议对照公司审批制度逐条核实，确保合规性' },
+        { level: 'low', type: '完整性风险', description: '单据部分字段信息不完整，可能影响审批判断准确性', suggestion: '建议补充缺失信息后再提交审批' },
+        { level: 'low', type: '时效风险', description: '单据提交时间与业务发生时间间隔较长，可能影响追溯核实', suggestion: '建议附上延迟提交的合理说明' }
       ],
+      conclusion: '该单据存在中等风险，建议核实合规要点和补充必要信息后审批。'
+    }
+
+    const template = isContract ? riskTemplates.contract
+      : isExpense ? riskTemplates.expense
+      : isPurchase ? riskTemplates.purchase
+      : isProject ? riskTemplates.project
+      : defaultTemplate
+
+    return {
+      riskLevel: template.level,
+      riskScore: template.score,
+      risks: template.risks,
+      conclusion: template.conclusion,
       mock: true
     }
   },
