@@ -1,0 +1,102 @@
+version: '3.8'
+
+# =============================================================================
+# 道一云 AI 协同中台 Demo - 基础服务编排
+# 包含: MySQL 8.0 + Redis 7 + MinIO
+# 启动: docker-compose up -d
+# 停止: docker-compose down
+# 重置: docker-compose down -v  (会删除数据卷)
+# =============================================================================
+
+services:
+  # ---------------------------------------------------------------------------
+  # MySQL 8.0 数据库
+  # 启动时自动执行 database/schema.sql 与 database/seed.sql
+  # ---------------------------------------------------------------------------
+  mysql:
+    image: mysql:8.0
+    container_name: jinmailang-mysql
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: ai_platform_demo
+      TZ: Asia/Shanghai
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jinmailang-net
+
+  # ---------------------------------------------------------------------------
+  # Redis 7 缓存服务
+  # ---------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: jinmailang-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --requirepass redis123
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "redis123", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jinmailang-net
+
+  # ---------------------------------------------------------------------------
+  # MinIO 对象存储 (用于发票、合同附件等文件存储)
+  # 控制台: http://localhost:9001
+  # API:    http://localhost:9000
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio
+    container_name: jinmailang-minio
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - jinmailang-net
+
+# =============================================================================
+# 数据卷
+# =============================================================================
+volumes:
+  mysql_data:
+    name: jinmailang_mysql_data
+  redis_data:
+    name: jinmailang_redis_data
+  minio_data:
+    name: jinmailang_minio_data
+
+# =============================================================================
+# 网络
+# =============================================================================
+networks:
+  jinmailang-net:
+    name: jinmailang-net
+    driver: bridge

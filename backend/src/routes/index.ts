@@ -1,0 +1,30 @@
+import { Router } from 'express'
+import authRoutes from './auth.js'
+import todoRoutes from './todos.js'
+import approvalRoutes from './approvals.js'
+import aiRoutes from './ai.js'
+import expenseRoutes from './expenses.js'
+import contractRoutes from './contracts.js'
+import dashboardRoutes from './dashboard.js'
+import systemRoutes from './system.js'
+import llmRoutes from './llm.js'
+import connectorRoutes from './connectors.js'
+import dataChatRoutes from './dataChat.js'
+import systemAdminRoutes from './systemAdmin.js'
+
+const router = Router()
+
+router.use('/auth', authRoutes)
+router.use('/todos', todoRoutes)
+router.use('/approvals', approvalRoutes)
+router.use('/ai', aiRoutes)
+router.use('/expenses', expenseRoutes)
+router.use('/contracts', contractRoutes)
+router.use('/dashboard', dashboardRoutes)
+router.use('/system', systemRoutes)
+router.use('/llm', llmRoutes)
+router.use('/connectors', connectorRoutes)
+router.use('/data-chat', dataChatRoutes)
+router.use('/system-admin', systemAdminRoutes)
+
+export default router

@@ -1,0 +1,1 @@
+import{r as i}from"./_plugin-vue_export-helper-CAZB2HUO.js";function n(a){return i.post("/ai/audit/summary",{content:a})}function r(a){return i.post("/ai/audit/risk",{content:a})}function u(a){return i.post("/ai/audit/opinion",{content:a})}function s(a){const t=new FormData;return t.append("image",a),i.upload("/ai/ocr/invoice",t)}export{n as a,r as b,u as c,s as o};

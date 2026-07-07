@@ -1,0 +1,1 @@
+import{r as o}from"./_plugin-vue_export-helper-CAZB2HUO.js";function a(t){return o.get("/todos",t)}function s(t){return o.get(`/todos/${t}`)}function n(t){return o.post("/todos/batch-approve",t)}function p(t,r=!1){return o.post("/todos/ai-batch",{ids:t,autoExecute:r})}export{p as a,n as b,s as c,a as g};
