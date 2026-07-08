@@ -371,6 +371,21 @@ router.get('/logs/stats', async (req: Request, res: Response) => {
 // G. 第三方系统管理
 // ============================================================
 
+// 创建第三方系统
+router.post('/third-party', async (req: Request, res: Response) => {
+  try {
+    const { name, code, type, category, icon, description } = req.body
+    if (!name || !code || !type) {
+      res.json(fail('name、code、type 不能为空'))
+      return
+    }
+    const data = await systemAdminService.createThirdPartySystem(req.body)
+    res.json(success(data, '创建成功'))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
 // 获取系统列表
 router.get('/third-party/list', async (req: Request, res: Response) => {
   try {
