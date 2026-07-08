@@ -74,10 +74,20 @@ router.post('/ask', async (req: Request, res: Response) => {
       res.json(fail('question 不能为空'))
       return
     }
+    // connectorId 现在可能是目标系统ID，需要映射为实际的连接器ID
+    let actualConnectorId: number | undefined = connectorId ? parseInt(connectorId, 10) : undefined
+    if (actualConnectorId) {
+      const systems = await dataChatService.getAvailableConnectors()
+      const matchedSystem = systems.find((s: any) => s.id === actualConnectorId)
+      if (matchedSystem && matchedSystem.connectorId) {
+        actualConnectorId = matchedSystem.connectorId
+      }
+    }
+
     const answer = await dataChatService.ask(
       parseInt(sessionId, 10),
       question.trim(),
-      connectorId ? parseInt(connectorId, 10) : undefined
+      actualConnectorId
     )
     res.json(success(answer, '问答完成'))
   } catch (error) {
