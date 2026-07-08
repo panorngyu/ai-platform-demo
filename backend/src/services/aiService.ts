@@ -335,6 +335,197 @@ export const aiService = {
       ],
       mock: true
     }
+  },
+
+  // 智能发起流程 - 识别流程类型
+  identifyProcess(userInput: string): any {
+    const keywords: Record<string, string> = {
+      expense: '报销',
+      contract: '合同',
+      purchase: '采购',
+      project: '项目',
+      leave: '请假',
+      travel: '出差',
+      overtime: '加班'
+    }
+
+    let identifiedType = 'unknown'
+    for (const [type, keyword] of Object.entries(keywords)) {
+      if (userInput.includes(keyword)) {
+        identifiedType = type
+        break
+      }
+    }
+
+    const processTypes: Record<string, {
+      type: string
+      name: string
+      description: string
+      icon: string
+      confidence: number
+    }> = {
+      expense: {
+        type: 'expense',
+        name: '报销审批',
+        description: '费用报销申请，支持餐饮、交通、住宿、办公等类型',
+        icon: 'Wallet',
+        confidence: 92
+      },
+      contract: {
+        type: 'contract',
+        name: '合同审批',
+        description: '合同签署审批，支持采购合同、服务合同、租赁合同等',
+        icon: 'Files',
+        confidence: 88
+      },
+      purchase: {
+        type: 'purchase',
+        name: '采购审批',
+        description: '物资/服务采购申请，需走招标或比价流程',
+        icon: 'ShoppingCart',
+        confidence: 85
+      },
+      project: {
+        type: 'project',
+        name: '项目立项审批',
+        description: '新项目立项申请，含预算、人员、计划等要素',
+        icon: 'Flag',
+        confidence: 80
+      },
+      leave: {
+        type: 'leave',
+        name: '请假审批',
+        description: '员工请假申请，支持年假、病假、事假等类型',
+        icon: 'Clock',
+        confidence: 90
+      },
+      travel: {
+        type: 'travel',
+        name: '出差审批',
+        description: '出差申请，含目的地、时间、预算等要素',
+        icon: 'Position',
+        confidence: 87
+      },
+      overtime: {
+        type: 'overtime',
+        name: '加班审批',
+        description: '加班申请，含加班时间、原因、补偿方式等',
+        icon: 'Timer',
+        confidence: 83
+      }
+    }
+
+    const defaultProcess = {
+      type: 'unknown',
+      name: '未知流程',
+      description: '未能识别具体流程类型，请补充描述或手动选择',
+      icon: 'QuestionFilled',
+      confidence: 30
+    }
+
+    const process = identifiedType !== 'unknown' ? processTypes[identifiedType] : defaultProcess
+
+    // 返回所有可选流程类型供用户选择
+    return {
+      identified: identifiedType !== 'unknown',
+      process,
+      availableTypes: Object.values(processTypes),
+      mock: true
+    }
+  },
+
+  // 智能发起流程 - 自动填充表单
+  fillProcessForm(processType: string, userInput: string): any {
+    const formTemplates: Record<string, {
+      fields: Array<{ key: string; label: string; type: string; value: string; required: boolean; options?: string[] }>
+      tips: string[]
+    }> = {
+      expense: {
+        fields: [
+          { key: 'type', label: '报销类型', type: 'select', value: userInput.includes('餐') ? '餐饮' : userInput.includes('车') || userInput.includes('交通') ? '交通' : userInput.includes('住') || userInput.includes('酒店') ? '住宿' : '其他', required: true, options: ['餐饮', '交通', '住宿', '办公', '会议', '其他'] },
+          { key: 'amount', label: '报销金额(元)', type: 'number', value: '', required: true },
+          { key: 'date', label: '费用发生日期', type: 'date', value: new Date().toISOString().split('T')[0], required: true },
+          { key: 'department', label: '所属部门', type: 'select', value: '信息技术部', required: true, options: ['信息技术部', '财务部', '人力资源部', '市场部', '运营部'] },
+          { key: 'description', label: '报销说明', type: 'textarea', value: userInput, required: true },
+          { key: 'receiptCount', label: '附件票据数', type: 'number', value: '1', required: false }
+        ],
+        tips: ['请确保报销金额与票据一致', '餐饮报销请附上会议通知或出差记录', '交通报销请附上行程单']
+      },
+      contract: {
+        fields: [
+          { key: 'contractType', label: '合同类型', type: 'select', value: userInput.includes('采购') ? '采购合同' : userInput.includes('服务') ? '服务合同' : '其他合同', required: true, options: ['采购合同', '服务合同', '租赁合同', '劳动合同', '其他'] },
+          { key: 'partyA', label: '甲方', type: 'text', value: '道一云食品有限公司', required: true },
+          { key: 'partyB', label: '乙方', type: 'text', value: '', required: true },
+          { key: 'amount', label: '合同金额(元)', type: 'number', value: '', required: true },
+          { key: 'startDate', label: '合同开始日期', type: 'date', value: new Date().toISOString().split('T')[0], required: true },
+          { key: 'endDate', label: '合同结束日期', type: 'date', value: '', required: true },
+          { key: 'description', label: '合同摘要', type: 'textarea', value: userInput, required: false }
+        ],
+        tips: ['合同金额超过10万元需走招标流程', '请确保乙方信息完整准确', '建议先经法务审核再提交']
+      },
+      purchase: {
+        fields: [
+          { key: 'itemName', label: '采购项目名称', type: 'text', value: '', required: true },
+          { key: 'amount', label: '采购金额(元)', type: 'number', value: '', required: true },
+          { key: 'supplier', label: '供应商', type: 'text', value: '', required: true },
+          { key: 'quantity', label: '采购数量', type: 'number', value: '1', required: true },
+          { key: 'department', label: '申请部门', type: 'select', value: '信息技术部', required: true, options: ['信息技术部', '财务部', '人力资源部', '市场部', '运营部'] },
+          { key: 'reason', label: '采购原因', type: 'textarea', value: userInput, required: true },
+          { key: 'deliveryDate', label: '期望交付日期', type: 'date', value: '', required: false }
+        ],
+        tips: ['采购金额超过5万元需三家比价', '超过10万元需公开招标', '请确认预算余额充足']
+      },
+      leave: {
+        fields: [
+          { key: 'leaveType', label: '请假类型', type: 'select', value: userInput.includes('病') ? '病假' : userInput.includes('年') ? '年假' : '事假', required: true, options: ['年假', '病假', '事假', '婚假', '产假', '丧假'] },
+          { key: 'startDate', label: '开始日期', type: 'date', value: new Date().toISOString().split('T')[0], required: true },
+          { key: 'endDate', label: '结束日期', type: 'date', value: '', required: true },
+          { key: 'days', label: '请假天数', type: 'number', value: '1', required: true },
+          { key: 'reason', label: '请假原因', type: 'textarea', value: userInput, required: true }
+        ],
+        tips: ['年假需提前3天申请', '病假需附医院证明', '连续请假超过3天需部门总监审批']
+      },
+      travel: {
+        fields: [
+          { key: 'destination', label: '出差目的地', type: 'text', value: '', required: true },
+          { key: 'startDate', label: '出发日期', type: 'date', value: new Date().toISOString().split('T')[0], required: true },
+          { key: 'endDate', label: '返回日期', type: 'date', value: '', required: true },
+          { key: 'budget', label: '出差预算(元)', type: 'number', value: '', required: true },
+          { key: 'purpose', label: '出差目的', type: 'textarea', value: userInput, required: true },
+          { key: 'companions', label: '同行人员', type: 'text', value: '', required: false }
+        ],
+        tips: ['出差预算含交通、住宿、餐饮', '请提前预订机票/酒店', '出差归来后7天内需提交报销']
+      }
+    }
+
+    const defaultForm = {
+      fields: [
+        { key: 'title', label: '流程标题', type: 'text', value: '', required: true },
+        { key: 'department', label: '申请部门', type: 'select', value: '信息技术部', required: true, options: ['信息技术部', '财务部', '人力资源部', '市场部', '运营部'] },
+        { key: 'description', label: '申请说明', type: 'textarea', value: userInput, required: true }
+      ],
+      tips: ['请补充详细描述以便AI更好地帮您填写', '您也可以手动填写表单后直接提交']
+    }
+
+    const template = formTemplates[processType] || defaultForm
+
+    // 从用户输入中尝试提取金额
+    const amountMatch = userInput.match(/(\d+(?:\.\d+)?)\s*(?:元|块|万)/)
+    if (amountMatch) {
+      const amountField = template.fields.find(f => f.key === 'amount' || f.key === 'budget')
+      if (amountField && !amountField.value) {
+        let val = parseFloat(amountMatch[1])
+        if (userInput.includes('万')) val *= 10000
+        amountField.value = val.toString()
+      }
+    }
+
+    return {
+      processType,
+      form: template.fields,
+      tips: template.tips,
+      mock: true
+    }
   }
 }
 
