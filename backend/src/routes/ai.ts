@@ -87,4 +87,34 @@ router.post('/ocr/contract', upload.single('image'), async (req: Request, res: R
   }
 })
 
+// 智能发起流程 - AI 识别流程类型
+router.post('/smart/identify', async (req: Request, res: Response) => {
+  try {
+    const userInput = req.body.input
+    if (!userInput) {
+      res.json(fail('input不能为空'))
+      return
+    }
+    const result = aiService.identifyProcess(userInput)
+    res.json(success(result))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
+// 智能发起流程 - AI 自动填充表单
+router.post('/smart/fill-form', async (req: Request, res: Response) => {
+  try {
+    const { processType, userInput } = req.body
+    if (!processType) {
+      res.json(fail('processType不能为空'))
+      return
+    }
+    const result = aiService.fillProcessForm(processType, userInput || '')
+    res.json(success(result))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
 export default router
