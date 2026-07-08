@@ -11,6 +11,7 @@ import llmRoutes from './llm.js'
 import connectorRoutes from './connectors.js'
 import dataChatRoutes from './dataChat.js'
 import systemAdminRoutes from './systemAdmin.js'
+import agentRoutes from './agent.js'
 
 const router = Router()
 
@@ -26,5 +27,6 @@ router.use('/llm', llmRoutes)
 router.use('/connectors', connectorRoutes)
 router.use('/data-chat', dataChatRoutes)
 router.use('/system-admin', systemAdminRoutes)
+router.use('/agent', agentRoutes)
 
 export default router
