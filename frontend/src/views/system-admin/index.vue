@@ -17,17 +17,9 @@ import {
   Postcard,
   Search,
   Refresh,
-  ShoppingCart,
-  Message,
   Warning,
-  CircleCheck,
-  CircleClose,
   Link,
-  Edit,
-  Tickets,
-  Files,
-  DataLine,
-  Wallet
+  Edit
 } from '@element-plus/icons-vue'
 import {
   getSecurityConfig,
@@ -67,16 +59,7 @@ import {
   type Position,
   type SystemUser,
   type Role,
-  type Permission,
-  type ThirdPartySystem,
-  type ThirdPartySystemListItem,
-  type ThirdPartySystemParam,
-  type ConnectionTestResult,
-  getThirdPartySystems,
-  getThirdPartySystemDetail,
-  updateThirdPartySystemConfig,
-  testThirdPartyConnection,
-  toggleThirdPartySystem
+  type Permission
 } from '@/api/systemAdmin'
 
 /* ============================================================
@@ -254,7 +237,7 @@ function renderAuditChart() {
   if (!auditChart) {
     auditChart = echarts.init(auditChartRef.value)
   }
-  const rawData = (auditStats.value as any).byModule || auditStats.value.moduleDistribution || []
+  const rawData = auditStats.value.byModule || auditStats.value.moduleDistribution || []
   const data = rawData.map((item: any) => ({
     name: item.module || item.name || '未知',
     value: item.count || item.value || 0
@@ -280,7 +263,7 @@ function renderAuditChart() {
         },
         animationDuration: 1200,
         animationEasing: 'cubicOut',
-        data: data.map((item: any) => ({ name: item.name, value: item.value }))
+        data: data.map((item) => ({ name: item.name, value: item.value }))
       }
     ],
     color: ['#1a3a5c', '#e8734a', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
@@ -723,137 +706,6 @@ function errorLevelTagType(l: string) {
 }
 
 /* ============================================================
- * Tab7: 第三方系统管理
- * ============================================================ */
-const tpSystems = ref<ThirdPartySystemListItem[]>([])
-const tpSystemsLoading = ref(false)
-const selectedTpSystem = ref<ThirdPartySystem | null>(null)
-const tpDetailLoading = ref(false)
-const tpConfigSaving = ref(false)
-const tpTesting = ref(false)
-const tpTestResult = ref<ConnectionTestResult | null>(null)
-const tpConfigForm = reactive<Record<string, string>>({})
-
-async function fetchTpSystems() {
-  tpSystemsLoading.value = true
-  try {
-    const res = await getThirdPartySystems()
-    tpSystems.value = res.data || []
-  } catch (e) {
-    // 兜底数据
-    tpSystems.value = [
-      { id: 1, name: 'OA审批系统', code: 'OA_SYSTEM', type: 'api', category: '审批流程', status: 'online', enabled: true, icon: 'Tickets', description: '企业OA审批流程系统', lastSyncTime: '2026-07-07 10:30', version: 'v3.2.1', apiCount: 28 },
-      { id: 2, name: '合同管理系统', code: 'CONTRACT_SYSTEM', type: 'api', category: '合同管理', status: 'online', enabled: true, icon: 'Files', description: '企业合同全生命周期管理系统', lastSyncTime: '2026-07-07 09:15', version: 'v2.8.0', apiCount: 35 },
-      { id: 3, name: '采购管理系统', code: 'PURCHASE_SYSTEM', type: 'api', category: '采购管理', status: 'online', enabled: true, icon: 'ShoppingCart', description: '企业采购管理系统', lastSyncTime: '2026-07-07 08:45', version: 'v2.5.3', apiCount: 22 },
-      { id: 4, name: '项目管理系统', code: 'PROJECT_SYSTEM', type: 'api', category: '项目管理', status: 'online', enabled: true, icon: 'DataLine', description: '企业项目管理系统', lastSyncTime: '2026-07-06 17:20', version: 'v4.1.0', apiCount: 18 },
-      { id: 5, name: 'ERP系统', code: 'ERP_SYSTEM', type: 'database', category: '综合管理', status: 'online', enabled: true, icon: 'Cpu', description: '企业资源计划系统', lastSyncTime: '2026-07-07 06:00', version: 'v8.0.2', apiCount: 120 },
-      { id: 6, name: '财务系统', code: 'FINANCE_SYSTEM', type: 'database', category: '财务管理', status: 'offline', enabled: false, icon: 'Wallet', description: '企业财务管理系统', lastSyncTime: '2026-06-30 23:00', version: 'v6.3.1', apiCount: 45 },
-      { id: 7, name: 'HR人事系统', code: 'HR_SYSTEM', type: 'api', category: '人事管理', status: 'online', enabled: true, icon: 'UserFilled', description: '企业人力资源管理系统', lastSyncTime: '2026-07-07 07:00', version: 'v3.0.5', apiCount: 32 },
-      { id: 8, name: '邮件系统', code: 'MAIL_SYSTEM', type: 'sdk', category: '通信协作', status: 'online', enabled: true, icon: 'Message', description: '企业邮件通知系统', lastSyncTime: '2026-07-07 12:00', version: 'v1.5.0', apiCount: 8 }
-    ]
-  } finally {
-    tpSystemsLoading.value = false
-  }
-}
-
-async function selectTpSystem(item: ThirdPartySystemListItem) {
-  tpDetailLoading.value = true
-  tpTestResult.value = null
-  try {
-    const res = await getThirdPartySystemDetail(item.id)
-    selectedTpSystem.value = res.data
-    // 初始化表单数据
-    for (const p of selectedTpSystem.value?.params || []) {
-      tpConfigForm[p.key] = p.value
-    }
-  } catch (e) {
-    // 兜底 - 用列表数据构造详情
-    selectedTpSystem.value = { ...item, params: [] } as ThirdPartySystem
-  } finally {
-    tpDetailLoading.value = false
-  }
-}
-
-async function saveTpConfig() {
-  if (!selectedTpSystem.value) return
-  tpConfigSaving.value = true
-  try {
-    await updateThirdPartySystemConfig(selectedTpSystem.value.id, tpConfigForm)
-    ElMessage.success('系统配置已保存')
-  } catch (e) {
-    ElMessage.success('配置已保存（Mock模式）')
-  } finally {
-    tpConfigSaving.value = false
-  }
-}
-
-async function testTpConnection() {
-  if (!selectedTpSystem.value) return
-  tpTesting.value = true
-  tpTestResult.value = null
-  try {
-    const res = await testThirdPartyConnection(selectedTpSystem.value.id)
-    tpTestResult.value = res.data
-  } catch (e) {
-    tpTestResult.value = {
-      systemId: selectedTpSystem.value.id,
-      systemName: selectedTpSystem.value.name,
-      success: selectedTpSystem.value.enabled,
-      message: selectedTpSystem.value.enabled ? '连接测试成功（Mock模式）' : '系统已禁用，无法测试连接',
-      responseTime: selectedTpSystem.value.enabled ? 128 : null,
-      testTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
-      details: {}
-    }
-  } finally {
-    tpTesting.value = false
-  }
-}
-
-async function toggleTpSystem(item: ThirdPartySystemListItem) {
-  try {
-    await toggleThirdPartySystem(item.id)
-    item.enabled = !item.enabled
-    item.status = item.enabled ? 'online' : 'offline'
-    ElMessage.success(`${item.name} 已${item.enabled ? '启用' : '禁用'}`)
-  } catch (e) {
-    item.enabled = !item.enabled
-    item.status = item.enabled ? 'online' : 'offline'
-    ElMessage.success(`${item.name} 已${item.enabled ? '启用' : '禁用'}（Mock模式）`)
-  }
-}
-
-function tpTypeTag(type: string) {
-  const map: Record<string, { text: string; tagType: string }> = {
-    api: { text: 'API对接', tagType: 'primary' },
-    sdk: { text: 'SDK集成', tagType: 'success' },
-    database: { text: '数据库直连', tagType: 'warning' }
-  }
-  return map[type] || { text: type, tagType: 'info' }
-}
-
-function tpStatusColor(status: string) {
-  const map: Record<string, string> = {
-    online: '#10b981',
-    offline: '#909399',
-    error: '#ef4444'
-  }
-  return map[status] || '#909399'
-}
-
-function tpStatusText(status: string) {
-  const map: Record<string, string> = { online: '在线', offline: '离线', error: '异常' }
-  return map[status] || status
-}
-
-const iconMap: Record<string, any> = {
-  Tickets, Files, ShoppingCart, DataLine, Cpu, Wallet, UserFilled, Message
-}
-
-function resolveIcon(iconName: string) {
-  return iconMap[iconName] || Connection
-}
-
-/* ============================================================
  * 生命周期
  * ============================================================ */
 function handleResize() {
@@ -1273,7 +1125,7 @@ watch(activeTab, (val) => {
             </el-col>
             <el-col :xs="12" :sm="6">
               <el-card class="stat-card stat-card-red" shadow="hover">
-                <div class="stat-card-num">{{ (auditStats as any)?.todayFailed ?? auditStats?.todayFailures ?? 0 }}</div>
+                <div class="stat-card-num">{{ auditStats?.todayFailed ?? 0 }}</div>
                 <div class="stat-card-label">今日失败数</div>
               </el-card>
             </el-col>
@@ -1825,7 +1677,7 @@ watch(activeTab, (val) => {
                 <el-table-column prop="userName" label="用户" width="100" />
                 <el-table-column prop="action" label="操作" width="80">
                   <template #default="{ row }">
-                    <el-tag :type="({ login: 'info', create: 'success', update: 'warning', delete: 'danger', approve: 'success', reject: 'danger', export: 'warning' } as Record<string, string>)[row.action] || 'info'" size="small">{{ row.action }}</el-tag>
+                    <el-tag :type="{ login: 'info', create: 'success', update: 'warning', delete: 'danger', approve: 'success', reject: 'danger', export: 'warning' }[row.action] || 'info'" size="small">{{ row.action }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="module" label="模块" width="90" />
@@ -1918,201 +1770,6 @@ watch(activeTab, (val) => {
               <el-pagination v-model:current-page="errorLogQuery.page" :page-size="errorLogQuery.pageSize" :total="errorLogsTotal" layout="total, prev, pager, next" small background @current-change="fetchErrorLogs" style="margin-top: 8px; justify-content: flex-end;" />
             </el-tab-pane>
           </el-tabs>
-        </div>
-      </el-tab-pane>
-
-      <!-- ============ Tab7: 第三方系统管理 ============ -->
-      <el-tab-pane label="第三方系统管理" name="third-party">
-        <div class="sa-tab-content">
-          <el-row :gutter="16">
-            <!-- 系统列表 -->
-            <el-col :xs="24" :sm="10" :md="8">
-              <el-card shadow="never" class="tp-list-card" v-loading="tpSystemsLoading">
-                <template #header>
-                  <div class="card-header-flex">
-                    <span class="card-title">已接入系统</span>
-                    <el-tag size="small" type="info">{{ tpSystems.length }} 个</el-tag>
-                  </div>
-                </template>
-                <div class="tp-list">
-                  <div
-                    v-for="item in tpSystems"
-                    :key="item.id"
-                    class="tp-item"
-                    :class="{ active: selectedTpSystem?.id === item.id, disabled: !item.enabled }"
-                    @click="selectTpSystem(item)"
-                  >
-                    <div class="tp-item-top">
-                      <div class="tp-icon-wrap" :style="{ background: item.enabled ? 'linear-gradient(135deg, #1a3a5c, #3b82f6)' : '#dcdfe6' }">
-                        <el-icon :size="18"><component :is="resolveIcon(item.icon)" /></el-icon>
-                      </div>
-                      <div class="tp-item-info">
-                        <div class="tp-item-name">
-                          {{ item.name }}
-                          <span class="tp-status-dot" :style="{ background: tpStatusColor(item.status) }"></span>
-                        </div>
-                        <div class="tp-item-desc">{{ item.description }}</div>
-                      </div>
-                    </div>
-                    <div class="tp-item-meta">
-                      <el-tag :type="tpTypeTag(item.type).tagType" size="small" effect="plain">{{ tpTypeTag(item.type).text }}</el-tag>
-                      <el-tag size="small" effect="plain">{{ item.category }}</el-tag>
-                      <el-tag :type="item.enabled ? 'success' : 'info'" size="small">{{ tpStatusText(item.status) }}</el-tag>
-                      <el-button
-                        size="small"
-                        link
-                        :type="item.enabled ? 'danger' : 'success'"
-                        @click.stop="toggleTpSystem(item)"
-                      >
-                        {{ item.enabled ? '禁用' : '启用' }}
-                      </el-button>
-                    </div>
-                  </div>
-                  <el-empty v-if="!tpSystems.length" description="暂无接入系统" />
-                </div>
-              </el-card>
-            </el-col>
-
-            <!-- 系统详情 & 参数配置 -->
-            <el-col :xs="24" :sm="14" :md="16">
-              <el-empty v-if="!selectedTpSystem" description="请选择左侧系统查看详情和配置参数" />
-
-              <div v-else v-loading="tpDetailLoading" class="tp-detail">
-                <!-- 系统概览 -->
-                <el-card shadow="never" class="tp-overview-card">
-                  <template #header>
-                    <div class="card-header-flex">
-                      <span class="card-title">
-                        <el-icon :size="18"><component :is="resolveIcon(selectedTpSystem.icon)" /></el-icon>
-                        {{ selectedTpSystem.name }} — 系统概览
-                      </span>
-                      <el-tag :type="selectedTpSystem.enabled ? 'success' : 'info'" size="small">
-                        {{ tpStatusText(selectedTpSystem.status) }}
-                      </el-tag>
-                    </div>
-                  </template>
-                  <el-descriptions :column="3" border size="small">
-                    <el-descriptions-item label="系统编码">{{ selectedTpSystem.code }}</el-descriptions-item>
-                    <el-descriptions-item label="对接方式">
-                      <el-tag :type="tpTypeTag(selectedTpSystem.type).tagType" size="small">{{ tpTypeTag(selectedTpSystem.type).text }}</el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="版本">{{ selectedTpSystem.version }}</el-descriptions-item>
-                    <el-descriptions-item label="接口数量">{{ selectedTpSystem.apiCount }} 个</el-descriptions-item>
-                    <el-descriptions-item label="业务分类">{{ selectedTpSystem.category }}</el-descriptions-item>
-                    <el-descriptions-item label="最近同步">{{ selectedTpSystem.lastSyncTime }}</el-descriptions-item>
-                    <el-descriptions-item label="系统描述" :span="3">{{ selectedTpSystem.description }}</el-descriptions-item>
-                  </el-descriptions>
-                </el-card>
-
-                <!-- 对接参数配置 -->
-                <el-card shadow="never" class="tp-config-card" style="margin-top: 16px;">
-                  <template #header>
-                    <div class="card-header-flex">
-                      <span class="card-title">
-                        <el-icon><Link /></el-icon>
-                        对接参数配置
-                      </span>
-                      <div style="display: flex; gap: 8px;">
-                        <el-button
-                          type="warning"
-                          plain
-                          size="small"
-                          :icon="Connection"
-                          :loading="tpTesting"
-                          @click="testTpConnection"
-                        >
-                          测试连接
-                        </el-button>
-                        <el-button
-                          type="primary"
-                          size="small"
-                          :icon="Check"
-                          :loading="tpConfigSaving"
-                          @click="saveTpConfig"
-                        >
-                          保存配置
-                        </el-button>
-                      </div>
-                    </div>
-                  </template>
-
-                  <el-form label-width="140px" label-position="right" size="small">
-                    <el-form-item
-                      v-for="param in selectedTpSystem.params"
-                      :key="param.key"
-                      :label="param.label"
-                      :required="param.required"
-                    >
-                      <el-input
-                        v-if="param.type === 'text'"
-                        v-model="tpConfigForm[param.key]"
-                        :placeholder="param.description"
-                      />
-                      <el-input
-                        v-else-if="param.type === 'password'"
-                        v-model="tpConfigForm[param.key]"
-                        type="password"
-                        show-password
-                        :placeholder="param.description"
-                      />
-                      <el-input-number
-                        v-else-if="param.type === 'number'"
-                        v-model="tpConfigForm[param.key]"
-                        :min="1"
-                        controls-position="right"
-                        style="width: 200px;"
-                      />
-                      <el-select
-                        v-else-if="param.type === 'select'"
-                        v-model="tpConfigForm[param.key]"
-                        style="width: 100%;"
-                      >
-                        <el-option v-for="opt in param.options || []" :key="opt" :label="opt" :value="opt" />
-                      </el-select>
-                      <div class="param-desc">{{ param.description }}</div>
-                    </el-form-item>
-                  </el-form>
-
-                  <!-- 安全提示 -->
-                  <div class="config-security-tip">
-                    <el-icon :size="14"><Warning /></el-icon>
-                    <span>密钥类参数已加密存储，仅可在本页面修改。建议定期轮换密钥，确保系统安全。</span>
-                  </div>
-                </el-card>
-
-                <!-- 连接测试结果 -->
-                <el-card v-if="tpTestResult" shadow="never" class="tp-test-card" style="margin-top: 16px;">
-                  <template #header>
-                    <div class="card-header-flex">
-                      <span class="card-title">连接测试结果</span>
-                      <el-tag :type="tpTestResult.success ? 'success' : 'danger'" effect="dark" size="small">
-                        <el-icon v-if="tpTestResult.success"><CircleCheck /></el-icon>
-                        <el-icon v-else><CircleClose /></el-icon>
-                        {{ tpTestResult.success ? '连接成功' : '连接失败' }}
-                      </el-tag>
-                    </div>
-                  </template>
-                  <el-descriptions :column="2" border size="small">
-                    <el-descriptions-item label="测试时间">{{ tpTestResult.testTime }}</el-descriptions-item>
-                    <el-descriptions-item label="响应时间" v-if="tpTestResult.responseTime">
-                      <span :class="{ 'resp-fast': tpTestResult.responseTime < 200, 'resp-slow': tpTestResult.responseTime > 500 }">
-                        {{ tpTestResult.responseTime }}ms
-                      </span>
-                    </el-descriptions-item>
-                    <el-descriptions-item label="测试结果" :span="2">
-                      {{ tpTestResult.message }}
-                    </el-descriptions-item>
-                    <el-descriptions-item v-if="tpTestResult.details?.apiVersion" label="API版本">{{ tpTestResult.details.apiVersion }}</el-descriptions-item>
-                    <el-descriptions-item v-if="tpTestResult.details?.rateLimit" label="限流策略">{{ tpTestResult.details.rateLimit }}</el-descriptions-item>
-                    <el-descriptions-item v-if="tpTestResult.details?.errorCode" label="错误码">
-                      <el-tag type="danger" size="small">{{ tpTestResult.details.errorCode }}</el-tag>
-                    </el-descriptions-item>
-                    <el-descriptions-item v-if="tpTestResult.details?.suggestion" label="修复建议" :span="2">{{ tpTestResult.details.suggestion }}</el-descriptions-item>
-                  </el-descriptions>
-                </el-card>
-              </div>
-            </el-col>
-          </el-row>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -2683,119 +2340,4 @@ watch(activeTab, (val) => {
   line-height: 1.6;
 }
 
-/* ============ 第三方系统管理 ============ */
-.tp-list-card {
-  min-height: 400px;
-}
-.tp-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tp-item {
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #fff;
-}
-.tp-item:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 2px 8px rgba(59,130,246,0.12);
-}
-.tp-item.active {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-.tp-item.disabled {
-  background: #f5f5f5;
-  opacity: 0.8;
-}
-.tp-item-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.tp-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  flex-shrink: 0;
-}
-.tp-item-info {
-  flex: 1;
-  min-width: 0;
-}
-.tp-item-name {
-  font-weight: 600;
-  color: #1a3a5c;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tp-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  display: inline-block;
-}
-.tp-item-desc {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tp-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.tp-detail {
-  min-height: 400px;
-}
-.tp-overview-card {
-  border-radius: 8px;
-}
-.tp-config-card {
-  border-radius: 8px;
-}
-.param-desc {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 2px;
-}
-.config-security-tip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 16px;
-  padding: 10px 12px;
-  background: #fffbeb;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #92400e;
-  border: 1px solid #fde68a;
-}
-.tp-test-card {
-  border-radius: 8px;
-}
-.resp-fast {
-  color: #10b981;
-  font-weight: 600;
-}
-.resp-slow {
-  color: #ef4444;
-  font-weight: 600;
-}
 </style>
