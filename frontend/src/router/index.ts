@@ -30,13 +30,13 @@ const routes: RouteRecordRaw[] = [
         path: 'approval/:id',
         name: 'ApprovalDesk',
         component: () => import('@/views/approval/index.vue'),
-        meta: { title: '智能审批台', icon: 'Document', hidden: true, breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: '智能审批助手' }] }
+        meta: { title: '智能审批台', icon: 'Document', hidden: true }
       },
       {
         path: 'ai-audit/:id',
         name: 'AiAudit',
         component: () => import('@/views/ai-audit/index.vue'),
-        meta: { title: 'AI审核详情', icon: 'MagicStick', hidden: true, breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: 'AI审核助手' }] }
+        meta: { title: 'AI审核详情', icon: 'MagicStick', hidden: true }
       },
       {
         path: 'expense',
