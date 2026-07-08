@@ -238,22 +238,22 @@ function nextSessionId(): number {
 function autoMatchConnector(question: string): { id: number, name: string, type: string, targetType: string } | null {
   const q = question.toLowerCase()
 
-  // 关键词 → 连接器映射规则（按匹配优先级排列）
+  // 关键词 → 连接器映射规则（按匹配优先级排列，与统一目标系统列表保持一致）
   const rules: { keywords: string[], connectorId: number, connectorName: string, type: string, targetType: string }[] = [
     // 财务/报销/预算/费用 → MySQL-财务库
-    { keywords: ['报销', '费用', '预算', '发票', '付款', '财务', '金额', '成本', '支出'], connectorId: 3, connectorName: 'MySQL-财务库', type: 'database', targetType: 'MySQL' },
-    // 合同/签约 → ERP系统对接
-    { keywords: ['合同', '签约', '履约', '条款'], connectorId: 1, connectorName: 'ERP系统对接', type: 'rest_api', targetType: 'ERP' },
-    // 采购/供应商/订单 → ERP系统对接
-    { keywords: ['采购', '供应商', '订单', '物料', '入库'], connectorId: 1, connectorName: 'ERP系统对接', type: 'rest_api', targetType: 'ERP' },
+    { keywords: ['报销', '费用', '预算', '发票', '付款', '财务', '金额', '成本', '支出'], connectorId: 3, connectorName: 'MySQL-财务库', type: 'database', targetType: '财务系统' },
+    // 合同/签约 → SFTP-合同归档
+    { keywords: ['合同', '签约', '履约', '条款'], connectorId: 6, connectorName: 'SFTP-合同归档', type: 'file_transfer', targetType: '合同管理系统' },
+    // 采购/供应商/订单 → RPA-采购对账机器人
+    { keywords: ['采购', '供应商', '订单', '物料', '入库'], connectorId: 8, connectorName: 'RPA-采购对账机器人', type: 'rpa', targetType: '采购管理系统' },
     // 客户/销售/营收 → CRM系统对接
-    { keywords: ['客户', '销售', '营收', '订单', '渠道'], connectorId: 2, connectorName: 'CRM系统对接', type: 'rest_api', targetType: 'CRM' },
-    // 待办/审批/流程 → WebService-OA系统
-    { keywords: ['待办', '审批', '流程', '工单', '任务'], connectorId: 7, connectorName: 'WebService-OA系统', type: 'esb', targetType: 'OA' },
-    // 员工/人事/考勤/组织 → Oracle-HR库
-    { keywords: ['员工', '人事', '考勤', '组织', '部门', '人员', '绩效'], connectorId: 4, connectorName: 'Oracle-HR库', type: 'database', targetType: 'Oracle' },
-    // 生产/制造/排产/质量 → RPA-MES系统
-    { keywords: ['生产', '制造', '排产', '质量', '工序', '产线'], connectorId: 8, connectorName: 'RPA-MES系统', type: 'rpa', targetType: 'MES' },
+    { keywords: ['客户', '销售', '营收', '订单', '渠道'], connectorId: 2, connectorName: 'CRM系统对接', type: 'rest_api', targetType: 'CRM系统' },
+    // 待办/审批/流程 → RabbitMQ-OA审批通知
+    { keywords: ['待办', '审批', '流程', '工单', '任务'], connectorId: 5, connectorName: 'RabbitMQ-OA审批通知', type: 'message_queue', targetType: 'OA审批系统' },
+    // 资产/设备/盘点 → Oracle-资产库
+    { keywords: ['资产', '设备', '盘点', '折旧', '报废'], connectorId: 4, connectorName: 'Oracle-资产库', type: 'database', targetType: '资产管理系统' },
+    // 项目/立项/进度 → WebService-项目系统
+    { keywords: ['项目', '立项', '进度', '里程碑', '资源'], connectorId: 7, connectorName: 'WebService-项目系统', type: 'esb', targetType: '项目管理系统' },
   ]
 
   // 遍历规则，找到第一个匹配的
@@ -263,8 +263,8 @@ function autoMatchConnector(question: string): { id: number, name: string, type:
     }
   }
 
-  // 默认返回MySQL-财务库
-  return { id: 3, name: 'MySQL-财务库', type: 'database', targetType: 'MySQL' }
+  // 默认返回 MySQL-财务库
+  return { id: 3, name: 'MySQL-财务库', type: 'database', targetType: '财务系统' }
 }
 
 // 判断问题类型
@@ -314,11 +314,11 @@ function generateAnswer(question: string, connectorId?: number, autoConnector?: 
       1: 'ERP系统对接',
       2: 'CRM系统对接',
       3: 'MySQL-财务库',
-      4: 'Oracle-HR库',
-      5: 'RabbitMQ-审批通知',
+      4: 'Oracle-资产库',
+      5: 'RabbitMQ-OA审批通知',
       6: 'SFTP-合同归档',
-      7: 'WebService-OA系统',
-      8: 'RPA-MES系统'
+      7: 'WebService-项目系统',
+      8: 'RPA-采购对账机器人'
     }
     connectorName = connectorMap[connectorId] || 'MySQL-财务库'
   } else if (autoConnector) {
@@ -679,15 +679,27 @@ export const dataChatService = {
 
   // ---------- 连接器选择 ----------
 
-  // 获取可用于问答的连接器列表（status=running）
+  // 获取可用于问答的连接器列表，以统一目标系统名称展示
   async getAvailableConnectors(): Promise<any[]> {
-    const result = await connectorService.getConnectors({ status: 'running', pageSize: '100' })
-    return result.list.map((c: any) => ({
-      id: c.id,
-      name: c.name,
-      type: c.type,
-      targetType: c.targetType
-    }))
+    // 优先使用目标系统列表，关联对应连接器ID
+    const systems = await connectorService.getTargetSystems()
+    const connectorsResult = await connectorService.getConnectors({ pageSize: '100' })
+    const connectorMap = new Map(connectorsResult.list.map((c: any) => [c.id, c]))
+
+    // 返回目标系统列表，附带关联的连接器信息
+    return systems.map((sys: any) => {
+      const conn = sys.connectorId ? connectorMap.get(sys.connectorId) : null
+      return {
+        id: sys.id,                // 目标系统ID（用于选择器）
+        connectorId: conn?.id || sys.connectorId || null, // 关联的连接器ID（用于实际查询）
+        name: sys.name,            // 统一目标系统名称
+        code: sys.code,
+        type: conn?.type || 'rest_api',
+        targetType: conn?.targetType || sys.code,
+        status: sys.status,
+        description: sys.description
+      }
+    })
   }
 }
 
