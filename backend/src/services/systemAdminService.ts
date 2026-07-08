@@ -289,6 +289,194 @@ let alertConfig = {
   ]
 }
 
+// 第三方系统列表
+const thirdPartySystems = [
+  {
+    id: 1,
+    name: 'OA审批系统',
+    code: 'OA_SYSTEM',
+    type: 'api',
+    category: '审批流程',
+    status: 'online',
+    enabled: true,
+    icon: 'Tickets',
+    description: '企业OA审批流程系统，支持报销、请假、出差等审批流程发起与查询',
+    lastSyncTime: '2026-07-07 10:30:00',
+    version: 'v3.2.1',
+    apiCount: 28,
+    params: [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://oa.example.com/api/v3', required: true, description: 'OA系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'oa_sk_8f3a2b1c', required: true, description: '接口认证密钥' },
+      { key: 'appSecret', label: '应用密钥', type: 'password', value: 'app_secret_x9y7z', required: true, description: '应用级别密钥，用于签名验证' },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/oa', required: false, description: '审批结果回调通知地址' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间，默认5000ms' },
+      { key: 'rateLimit', label: '限流策略', type: 'select', value: '100/min', required: false, description: '接口调用限流策略', options: ['50/min', '100/min', '200/min', '500/min'] },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'realtime', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  },
+  {
+    id: 2,
+    name: '合同管理系统',
+    code: 'CONTRACT_SYSTEM',
+    type: 'api',
+    category: '合同管理',
+    status: 'online',
+    enabled: true,
+    icon: 'Files',
+    description: '企业合同全生命周期管理系统，支持合同起草、审批、签署、归档',
+    lastSyncTime: '2026-07-07 09:15:00',
+    version: 'v2.8.0',
+    apiCount: 35,
+    params: [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://contract.example.com/api/v2', required: true, description: '合同系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'ct_sk_4d5e6f7g', required: true, description: '接口认证密钥' },
+      { key: 'oauthClientId', label: 'OAuth Client ID', type: 'text', value: 'contract_client_001', required: true, description: 'OAuth2.0 客户端ID' },
+      { key: 'oauthClientSecret', label: 'OAuth Client Secret', type: 'password', value: 'oauth_cs_h8i9j0k', required: true, description: 'OAuth2.0 客户端密钥' },
+      { key: 'signProvider', label: '签署平台', type: 'select', value: 'esign', required: false, description: '电子签署平台选择', options: ['esign', 'fadada', 'docsign'] },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/contract', required: false, description: '合同状态变更回调地址' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '8000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'batch', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  },
+  {
+    id: 3,
+    name: '采购管理系统',
+    code: 'PURCHASE_SYSTEM',
+    type: 'api',
+    category: '采购管理',
+    status: 'online',
+    enabled: true,
+    icon: 'ShoppingCart',
+    description: '企业采购管理系统，支持采购需求、询价比价、订单管理、供应商管理',
+    lastSyncTime: '2026-07-07 08:45:00',
+    version: 'v2.5.3',
+    apiCount: 22,
+    params: [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://purchase.example.com/api/v2', required: true, description: '采购系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'pu_sk_1a2b3c4d', required: true, description: '接口认证密钥' },
+      { key: 'supplierDbHost', label: '供应商数据库地址', type: 'text', value: '10.0.1.50:3306', required: false, description: '供应商数据库连接地址' },
+      { key: 'supplierDbName', label: '供应商数据库名', type: 'text', value: 'supplier_db', required: false, description: '供应商数据库名称' },
+      { key: 'supplierDbPassword', label: '数据库密码', type: 'password', value: 'db_pwd_encrypted', required: false, description: '数据库连接密码' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '6000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'schedule', required: false, description: '数据同步模式（建议定时同步）', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  },
+  {
+    id: 4,
+    name: '项目管理系统',
+    code: 'PROJECT_SYSTEM',
+    type: 'api',
+    category: '项目管理',
+    status: 'online',
+    enabled: true,
+    icon: 'DataLine',
+    description: '企业项目管理系统，支持项目立项、进度跟踪、资源分配、里程碑管理',
+    lastSyncTime: '2026-07-06 17:20:00',
+    version: 'v4.1.0',
+    apiCount: 18,
+    params: [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://project.example.com/api/v4', required: true, description: '项目系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'pj_sk_5e6f7g8h', required: true, description: '接口认证密钥' },
+      { key: 'webhookUrl', label: 'Webhook地址', type: 'text', value: 'https://project.example.com/webhook/events', required: false, description: '项目事件推送地址' },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/project', required: false, description: '项目状态变更回调地址' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'realtime', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  },
+  {
+    id: 5,
+    name: 'ERP系统',
+    code: 'ERP_SYSTEM',
+    type: 'database',
+    category: '综合管理',
+    status: 'online',
+    enabled: true,
+    icon: 'Cpu',
+    description: '企业资源计划系统，覆盖财务、供应链、生产制造、人力资源等核心业务',
+    lastSyncTime: '2026-07-07 06:00:00',
+    version: 'v8.0.2',
+    apiCount: 120,
+    params: [
+      { key: 'dbHost', label: '数据库地址', type: 'text', value: '10.0.0.100', required: true, description: 'ERP数据库服务器地址' },
+      { key: 'dbPort', label: '数据库端口', type: 'number', value: '1521', required: true, description: '数据库端口（Oracle默认1521）' },
+      { key: 'dbUser', label: '数据库用户', type: 'text', value: 'erp_reader', required: true, description: '数据库只读账号' },
+      { key: 'dbPassword', label: '数据库密码', type: 'password', value: 'erp_pwd_encrypted', required: true, description: '数据库连接密码' },
+      { key: 'dbName', label: '数据库实例名', type: 'text', value: 'ERP_PROD', required: true, description: '数据库实例名/SID' },
+      { key: 'dbType', label: '数据库类型', type: 'select', value: 'oracle', required: true, description: '数据库引擎类型', options: ['oracle', 'mysql', 'postgresql', 'sqlserver'] },
+      { key: 'syncInterval', label: '同步间隔(分钟)', type: 'number', value: '30', required: false, description: '定时数据同步间隔' },
+      { key: 'readOnly', label: '只读模式', type: 'select', value: 'true', required: false, description: '是否仅读取数据（建议只读）', options: ['true', 'false'] }
+    ]
+  },
+  {
+    id: 6,
+    name: '财务系统',
+    code: 'FINANCE_SYSTEM',
+    type: 'database',
+    category: '财务管理',
+    status: 'offline',
+    enabled: false,
+    icon: 'Wallet',
+    description: '企业财务管理系统，涵盖总账、应收应付、固定资产、成本核算等',
+    lastSyncTime: '2026-06-30 23:00:00',
+    version: 'v6.3.1',
+    apiCount: 45,
+    params: [
+      { key: 'dbHost', label: '数据库地址', type: 'text', value: '10.0.0.200', required: true, description: '财务数据库服务器地址' },
+      { key: 'dbPort', label: '数据库端口', type: 'number', value: '3306', required: true, description: '数据库端口' },
+      { key: 'dbUser', label: '数据库用户', type: 'text', value: 'finance_reader', required: true, description: '数据库只读账号' },
+      { key: 'dbPassword', label: '数据库密码', type: 'password', value: 'fin_pwd_encrypted', required: true, description: '数据库连接密码' },
+      { key: 'dbName', label: '数据库名', type: 'text', value: 'finance_db', required: true, description: '数据库库名' },
+      { key: 'dbType', label: '数据库类型', type: 'select', value: 'mysql', required: true, description: '数据库引擎类型', options: ['oracle', 'mysql', 'postgresql', 'sqlserver'] },
+      { key: 'syncInterval', label: '同步间隔(分钟)', type: 'number', value: '60', required: false, description: '定时数据同步间隔' },
+      { key: 'readOnly', label: '只读模式', type: 'select', value: 'true', required: false, description: '是否仅读取数据', options: ['true', 'false'] }
+    ]
+  },
+  {
+    id: 7,
+    name: 'HR人事系统',
+    code: 'HR_SYSTEM',
+    type: 'api',
+    category: '人事管理',
+    status: 'online',
+    enabled: true,
+    icon: 'UserFilled',
+    description: '企业人力资源管理系统，支持员工信息、考勤、薪酬、组织架构管理',
+    lastSyncTime: '2026-07-07 07:00:00',
+    version: 'v3.0.5',
+    apiCount: 32,
+    params: [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://hr.example.com/api/v3', required: true, description: 'HR系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'hr_sk_9i0j1k2l', required: true, description: '接口认证密钥' },
+      { key: 'tenantId', label: '租户ID', type: 'text', value: 'tenant_001', required: true, description: '多租户模式下的租户标识' },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/hr', required: false, description: '人事变动回调地址' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'realtime', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  },
+  {
+    id: 8,
+    name: '邮件系统',
+    code: 'MAIL_SYSTEM',
+    type: 'sdk',
+    category: '通信协作',
+    status: 'online',
+    enabled: true,
+    icon: 'Message',
+    description: '企业邮件系统，用于审批通知、流程提醒、报表推送等邮件发送',
+    lastSyncTime: '2026-07-07 12:00:00',
+    version: 'v1.5.0',
+    apiCount: 8,
+    params: [
+      { key: 'smtpHost', label: 'SMTP服务器', type: 'text', value: 'smtp.exmail.qq.com', required: true, description: 'SMTP邮件服务器地址' },
+      { key: 'smtpPort', label: 'SMTP端口', type: 'number', value: '465', required: true, description: 'SMTP端口（SSL加密）' },
+      { key: 'smtpUser', label: '发件账号', type: 'text', value: 'ai-notify@company.com', required: true, description: 'SMTP认证账号' },
+      { key: 'smtpPassword', label: '发件密码', type: 'password', value: 'mail_pwd_encrypted', required: true, description: 'SMTP认证密码' },
+      { key: 'fromName', label: '发件人名称', type: 'text', value: 'AI审批平台', required: false, description: '邮件显示的发件人名称' },
+      { key: 'sslEnabled', label: 'SSL加密', type: 'select', value: 'true', required: false, description: '是否启用SSL加密', options: ['true', 'false'] }
+    ]
+  }
+]
+
 // 部门树
 let departments = [
   {
@@ -936,6 +1124,77 @@ export const systemAdminService = {
       apiCall: { total: apiCallLogs.length, success: apiCallLogs.filter(l => l.status === 200).length, error: apiCallLogs.filter(l => l.status >= 400).length, avgDuration: Math.round(apiCallLogs.reduce((s, l) => s + l.duration, 0) / apiCallLogs.length) },
       error: { total: errorLogs.length, fatal: errorLogs.filter(l => l.level === 'fatal').length, error: errorLogs.filter(l => l.level === 'error').length, warn: errorLogs.filter(l => l.level === 'warn').length, unresolved: errorLogs.filter(l => !l.resolved).length }
     }
+  },
+
+  // ============================================================
+  // G. 第三方系统管理
+  // ============================================================
+
+  getThirdPartySystems() {
+    return thirdPartySystems.map(s => ({
+      id: s.id,
+      name: s.name,
+      code: s.code,
+      type: s.type,
+      category: s.category,
+      status: s.status,
+      enabled: s.enabled,
+      icon: s.icon,
+      description: s.description,
+      lastSyncTime: s.lastSyncTime,
+      version: s.version,
+      apiCount: s.apiCount
+    }))
+  },
+
+  getThirdPartySystemDetail(id: number) {
+    const system = thirdPartySystems.find(s => s.id === id)
+    if (!system) throw new Error('系统不存在')
+    return system
+  },
+
+  updateThirdPartySystemConfig(id: number, config: any) {
+    const system = thirdPartySystems.find(s => s.id === id)
+    if (!system) throw new Error('系统不存在')
+    // 更新参数
+    if (config.params) {
+      for (const [key, value] of Object.entries(config.params)) {
+        const param = system.params.find(p => p.key === key)
+        if (param) param.value = value as string
+      }
+    }
+    return system
+  },
+
+  testThirdPartyConnection(id: number) {
+    const system = thirdPartySystems.find(s => s.id === id)
+    if (!system) throw new Error('系统不存在')
+    // Mock 测试结果
+    const success = system.enabled && Math.random() > 0.15
+    return {
+      systemId: id,
+      systemName: system.name,
+      success,
+      message: success ? `连接 ${system.name} 成功，响应时间 ${(Math.floor(Math.random() * 200) + 50)}ms` : `连接 ${system.name} 失败：超时或认证错误`,
+      responseTime: success ? Math.floor(Math.random() * 200) + 50 : null,
+      testTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      details: success ? {
+        apiVersion: system.version,
+        supportedMethods: ['GET', 'POST', 'PUT', 'DELETE'],
+        rateLimit: system.params.find(p => p.key === 'rateLimit')?.value || '100/min'
+      } : {
+        errorCode: 'ETIMEDOUT',
+        suggestion: '请检查API地址和认证参数是否正确'
+      }
+    }
+  },
+
+  toggleThirdPartySystem(id: number) {
+    const system = thirdPartySystems.find(s => s.id === id)
+    if (!system) throw new Error('系统不存在')
+    system.enabled = !system.enabled
+    system.status = system.enabled ? 'online' : 'offline'
+    return { id, enabled: system.enabled, status: system.status }
   }
 }
 
