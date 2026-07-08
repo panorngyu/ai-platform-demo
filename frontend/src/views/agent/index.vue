@@ -203,7 +203,9 @@ function getFallbackAgents(): AgentItem[] {
 // 打开智能体（预置的跳转路由，自定义的进入对话）
 function openAgent(agent: AgentItem) {
   if (agent.routePath) {
-    router.push(agent.routePath)
+    // 从智能体中心进入，附加来源标识
+    const path = agent.routePath.includes('?') ? `${agent.routePath}&from=agent` : `${agent.routePath}?from=agent`
+    router.push(path)
   } else {
     ElMessage.info(`正在进入「${agent.name}」...`)
   }
@@ -857,12 +859,12 @@ onMounted(() => {
               <el-row :gutter="16">
                 <el-col :span="8">
                   <el-form-item label="流程名称">
-                    <el-input v-model="dialogForm.workflow!.name" placeholder="输入工作流名称" />
+                    <el-input v-model="dialogForm.workflow.name" placeholder="输入工作流名称" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="触发方式">
-                    <el-select v-model="dialogForm.workflow!.triggerType" style="width: 100%">
+                    <el-select v-model="dialogForm.workflow.triggerType" style="width: 100%">
                       <el-option label="手动触发" value="manual" />
                       <el-option label="API触发" value="api" />
                       <el-option label="定时触发" value="scheduled" />
@@ -876,7 +878,7 @@ onMounted(() => {
                 </el-col>
               </el-row>
               <el-form-item label="流程描述">
-                <el-input v-model="dialogForm.workflow!.description" placeholder="工作流用途说明" />
+                <el-input v-model="dialogForm.workflow.description" placeholder="工作流用途说明" />
               </el-form-item>
             </el-form>
           </div>
