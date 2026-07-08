@@ -410,3 +410,16 @@ export function testThirdPartyConnection(id: number) {
 export function toggleThirdPartySystem(id: number) {
   return request.put(`/system-admin/third-party/${id}/toggle`)
 }
+
+export function createThirdPartySystem(data: {
+  name: string
+  code: string
+  type: 'api' | 'sdk' | 'database'
+  category: string
+  icon?: string
+  description: string
+  version?: string
+  params?: ThirdPartySystemParam[]
+}) {
+  return request.post<ThirdPartySystem>('/system-admin/third-party', data)
+}
