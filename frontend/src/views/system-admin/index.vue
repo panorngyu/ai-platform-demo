@@ -237,7 +237,7 @@ function renderAuditChart() {
   if (!auditChart) {
     auditChart = echarts.init(auditChartRef.value)
   }
-  const rawData = auditStats.value.byModule || auditStats.value.moduleDistribution || []
+  const rawData = (auditStats.value as any).byModule || auditStats.value.moduleDistribution || []
   const data = rawData.map((item: any) => ({
     name: item.module || item.name || '未知',
     value: item.count || item.value || 0
@@ -263,7 +263,7 @@ function renderAuditChart() {
         },
         animationDuration: 1200,
         animationEasing: 'cubicOut',
-        data: data.map((item) => ({ name: item.name, value: item.value }))
+        data: data.map((item: any) => ({ name: item.name, value: item.value }))
       }
     ],
     color: ['#1a3a5c', '#e8734a', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6']
@@ -762,8 +762,6 @@ watch(activeTab, (val) => {
   } else if (val === 'logs') {
     fetchLogStats()
     fetchLoginLogs()
-  } else if (val === 'third-party' && tpSystems.value.length === 0) {
-    fetchTpSystems()
   }
 })
 </script>
@@ -1125,7 +1123,7 @@ watch(activeTab, (val) => {
             </el-col>
             <el-col :xs="12" :sm="6">
               <el-card class="stat-card stat-card-red" shadow="hover">
-                <div class="stat-card-num">{{ auditStats?.todayFailed ?? 0 }}</div>
+                <div class="stat-card-num">{{ (auditStats as any)?.todayFailed ?? auditStats?.todayFailures ?? 0 }}</div>
                 <div class="stat-card-label">今日失败数</div>
               </el-card>
             </el-col>
@@ -1677,7 +1675,7 @@ watch(activeTab, (val) => {
                 <el-table-column prop="userName" label="用户" width="100" />
                 <el-table-column prop="action" label="操作" width="80">
                   <template #default="{ row }">
-                    <el-tag :type="{ login: 'info', create: 'success', update: 'warning', delete: 'danger', approve: 'success', reject: 'danger', export: 'warning' }[row.action] || 'info'" size="small">{{ row.action }}</el-tag>
+                    <el-tag :type="({ login: 'info', create: 'success', update: 'warning', delete: 'danger', approve: 'success', reject: 'danger', export: 'warning' } as Record<string, string>)[row.action] || 'info'" size="small">{{ row.action }}</el-tag>
                   </template>
                 </el-table-column>
                 <el-table-column prop="module" label="模块" width="90" />
