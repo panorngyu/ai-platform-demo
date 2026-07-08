@@ -5,8 +5,6 @@ import {
   Fold,
   Expand,
   Tickets,
-  Wallet,
-  Files,
   DataLine,
   User,
   ArrowDown,
@@ -15,7 +13,9 @@ import {
   Monitor,
   Setting,
   Connection,
-  ChatLineRound
+  ChatLineRound,
+  Opportunity,
+  Service
 } from '@element-plus/icons-vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -27,8 +27,9 @@ const userStore = useUserStore()
 // ============ 菜单配置 ============
 const menus = [
   { index: '/todo', title: '待办中心', icon: Tickets },
-  { index: '/expense', title: '智能报销', icon: Wallet },
-  { index: '/contract', title: '智能合同', icon: Files },
+  { index: '/smart-square', title: '智能广场', icon: Opportunity },
+  { index: '/agent', title: '智能体中心', icon: Service },
+
   { index: '/dashboard', title: '管理驾驶舱', icon: DataLine },
   { index: '/llm', title: '大模型服务管理', icon: Setting },
   { index: '/connector', title: '连接器管理', icon: Connection },
@@ -79,16 +80,26 @@ const breadcrumbItems = computed(() => {
   const items: Array<{ title: string; path?: string }> = [
     { title: '首页', path: '/todo' }
   ]
-  const title = route.meta?.title as string
-  if (title && title !== '首页') {
-    items.push({ title })
+  // 支持自定义多级面包屑（用于智能体中心等层级入口）
+  const breadcrumbs = route.meta?.breadcrumb as Array<{ title: string; path?: string }> | undefined
+  if (breadcrumbs && breadcrumbs.length > 0) {
+    items.push(...breadcrumbs)
+  } else {
+    const title = route.meta?.title as string
+    if (title && title !== '首页') {
+      items.push({ title })
+    }
   }
   return items
 })
 
 const activeMenu = computed(() => {
-  // 取一级路径作为高亮菜单
   const seg = route.path.split('/')[1]
+  // 智能体相关页面统一高亮「智能体中心」
+  const agentSegments = ['expense', 'contract', 'approval', 'ai-audit']
+  if (agentSegments.includes(seg)) {
+    return '/agent'
+  }
   return '/' + seg
 })
 
