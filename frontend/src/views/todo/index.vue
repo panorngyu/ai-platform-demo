@@ -176,15 +176,15 @@ function handleSizeChange(s: number) {
 
 // ============ 行点击 / 跳转 ============
 function handleRowClick(row: TodoItem) {
-  router.push(`/approval/${row.id}`)
+  router.push(`/approval/${row.id}?from=todo`)
 }
 
 function goApproval(row: TodoItem) {
-  router.push(`/approval/${row.id}`)
+  router.push(`/approval/${row.id}?from=todo`)
 }
 
 function goAiAudit(row: TodoItem) {
-  router.push(`/ai-audit/${row.id}`)
+  router.push(`/ai-audit/${row.id}?from=todo`)
 }
 
 // ============ 批量操作 ============
