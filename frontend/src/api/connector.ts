@@ -124,3 +124,17 @@ export function testConnector(id: number) {
 export function testConnection(config: any) {
   return request.post('/connectors/test', config)
 }
+
+// ============ 目标系统 ============
+export interface TargetSystem {
+  id: number
+  code: string
+  name: string
+  description: string
+  status: string
+  connectorId: number
+}
+
+export function getTargetSystems() {
+  return request.get<TargetSystem[]>('/connectors/target-systems')
+}

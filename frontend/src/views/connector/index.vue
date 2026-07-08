@@ -359,14 +359,14 @@ async function fetchTargetSystems() {
   } catch (e) {
     // 兜底数据：与已接入系统列表保持一致
     targetSystemList.value = [
-      { id: 1, code: 'oa', name: 'OA审批系统', description: '企业OA办公审批平台', status: 'running' },
-      { id: 2, code: 'erp', name: 'ERP系统', description: '企业资源计划综合平台', status: 'running' },
-      { id: 3, code: 'crm', name: 'CRM系统', description: '客户关系管理系统', status: 'running' },
-      { id: 4, code: 'finance', name: '财务系统', description: '财务报销与预算管理', status: 'running' },
-      { id: 5, code: 'contract', name: '合同管理系统', description: '合同全生命周期管理', status: 'stopped' },
-      { id: 6, code: 'purchase', name: '采购管理系统', description: '采购申请与供应商管理', status: 'running' },
-      { id: 7, code: 'project', name: '项目管理系统', description: '项目立项与进度管控', status: 'running' },
-      { id: 8, code: 'asset', name: '资产管理系统', description: '资产登记与变动管理', status: 'running' }
+      { id: 1, code: 'oa', name: 'OA审批系统', description: '企业OA办公审批平台', status: 'running', connectorId: 5 },
+      { id: 2, code: 'erp', name: 'ERP系统', description: '企业资源计划综合平台', status: 'running', connectorId: 1 },
+      { id: 3, code: 'crm', name: 'CRM系统', description: '客户关系管理系统', status: 'running', connectorId: 2 },
+      { id: 4, code: 'finance', name: '财务系统', description: '财务报销与预算管理', status: 'running', connectorId: 3 },
+      { id: 5, code: 'contract', name: '合同管理系统', description: '合同全生命周期管理', status: 'stopped', connectorId: 6 },
+      { id: 6, code: 'purchase', name: '采购管理系统', description: '采购申请与供应商管理', status: 'running', connectorId: 8 },
+      { id: 7, code: 'project', name: '项目管理系统', description: '项目立项与进度管控', status: 'running', connectorId: 7 },
+      { id: 8, code: 'asset', name: '资产管理系统', description: '资产登记与变动管理', status: 'running', connectorId: 4 }
     ]
   }
 }

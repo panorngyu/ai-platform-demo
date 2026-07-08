@@ -7,6 +7,18 @@ const router = Router()
 
 router.use(authMiddleware)
 
+// ==================== 目标系统 ====================
+
+// 目标系统列表
+router.get('/target-systems', async (req: Request, res: Response) => {
+  try {
+    const list = await connectorService.getTargetSystems()
+    success(res, list)
+  } catch (err: any) {
+    fail(res, err.message || '获取目标系统列表失败')
+  }
+})
+
 // ==================== 连接器模板库 ====================
 
 // 模板列表
