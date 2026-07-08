@@ -28,7 +28,15 @@ import {
   VideoPlay,
   Loading,
   Setting,
-  Warning
+  Warning,
+  Tickets,
+  ShoppingCart,
+  UserFilled,
+  Message,
+  Wallet,
+  Check,
+  CircleCheck,
+  CircleClose
 } from '@element-plus/icons-vue'
 import {
   getConnectors,
@@ -43,19 +51,325 @@ import {
   getMonitorDetail,
   testConnector,
   testConnection,
+  getTargetSystems,
   type Connector,
   type ConnectorType,
   type ConnectorStatus,
   type ConnectorTemplate,
   type MonitorOverview,
   type MonitorTrendItem,
-  type MonitorDetail
+  type MonitorDetail,
+  type TargetSystem
 } from '@/api/connector'
+import {
+  getThirdPartySystems,
+  getThirdPartySystemDetail,
+  updateThirdPartySystemConfig,
+  testThirdPartyConnection,
+  toggleThirdPartySystem,
+  createThirdPartySystem,
+  type ThirdPartySystem,
+  type ThirdPartySystemListItem,
+  type ThirdPartySystemParam,
+  type ConnectionTestResult
+} from '@/api/systemAdmin'
 
 /* ===========================================================
  * Tab 切换
  * =========================================================== */
 const activeTab = ref('manage')
+
+/* ===========================================================
+ * 统一目标系统列表
+ * =========================================================== */
+const targetSystemList = ref<TargetSystem[]>([])
+
+/* ===========================================================
+ * Tab4: 第三方系统管理
+ * =========================================================== */
+const tpSystems = ref<ThirdPartySystemListItem[]>([])
+const tpSystemsLoading = ref(false)
+const selectedTpSystem = ref<ThirdPartySystem | null>(null)
+const tpDetailLoading = ref(false)
+const tpConfigSaving = ref(false)
+const tpTesting = ref(false)
+const tpTestResult = ref<ConnectionTestResult | null>(null)
+const tpConfigForm = reactive<Record<string, string>>({})
+
+/* ===========================================================
+ * 新增第三方系统弹窗
+ * =========================================================== */
+const tpAddDialogVisible = ref(false)
+const tpAddSubmitting = ref(false)
+const tpAddFormRef = ref()
+const tpAddForm = reactive({
+  name: '',
+  code: '',
+  type: 'api' as 'api' | 'sdk' | 'database',
+  category: '',
+  icon: 'Connection',
+  description: '',
+  version: 'v1.0.0',
+  params: [] as ThirdPartySystemParam[]
+})
+
+const tpAddFormRules = {
+  name: [{ required: true, message: '请输入系统名称', trigger: 'blur' }],
+  code: [{ required: true, message: '请输入系统编码', trigger: 'blur' }],
+  type: [{ required: true, message: '请选择对接方式', trigger: 'change' }],
+  category: [{ required: true, message: '请输入业务分类', trigger: 'blur' }],
+  description: [{ required: true, message: '请输入系统描述', trigger: 'blur' }]
+}
+
+const tpTypeOptions = [
+  { value: 'api', label: 'API对接' },
+  { value: 'sdk', label: 'SDK集成' },
+  { value: 'database', label: '数据库直连' }
+]
+
+const tpIconOptions = [
+  { value: 'Connection', label: '连接' },
+  { value: 'Tickets', label: '审批' },
+  { value: 'Cpu', label: '计算' },
+  { value: 'DataLine', label: '数据' },
+  { value: 'Files', label: '文件' },
+  { value: 'ShoppingCart', label: '采购' },
+  { value: 'UserFilled', label: '用户' },
+  { value: 'Message', label: '消息' },
+  { value: 'Wallet', label: '财务' },
+  { value: 'Promotion', label: '推广' },
+  { value: 'Box', label: '服务' },
+  { value: 'Operation', label: '运维' }
+]
+
+// 根据对接方式获取默认参数模板
+function getDefaultTpParams(type: 'api' | 'sdk' | 'database'): ThirdPartySystemParam[] {
+  if (type === 'api') {
+    return [
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: '', required: true, description: '系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: '', required: true, description: '接口认证密钥' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'realtime', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
+    ]
+  } else if (type === 'database') {
+    return [
+      { key: 'dbHost', label: '数据库地址', type: 'text', value: '', required: true, description: '数据库服务器地址' },
+      { key: 'dbPort', label: '数据库端口', type: 'number', value: '3306', required: true, description: '数据库端口' },
+      { key: 'dbName', label: '数据库名', type: 'text', value: '', required: true, description: '数据库名称' },
+      { key: 'dbUser', label: '数据库用户', type: 'text', value: '', required: true, description: '数据库连接账号' },
+      { key: 'dbPassword', label: '数据库密码', type: 'password', value: '', required: true, description: '数据库连接密码' },
+      { key: 'dbType', label: '数据库类型', type: 'select', value: 'mysql', required: true, description: '数据库引擎类型', options: ['oracle', 'mysql', 'postgresql', 'sqlserver'] }
+    ]
+  } else {
+    return [
+      { key: 'sdkPath', label: 'SDK路径', type: 'text', value: '', required: true, description: 'SDK包引入路径' },
+      { key: 'appKey', label: '应用密钥', type: 'password', value: '', required: true, description: '应用级别密钥' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '调用超时时间' }
+    ]
+  }
+}
+
+// 对接方式变更时更新默认参数
+watch(
+  () => tpAddForm.type,
+  (newType) => {
+    if (!tpAddDialogVisible.value) return
+    tpAddForm.params = getDefaultTpParams(newType)
+  }
+)
+
+// 添加自定义参数
+function addTpParam() {
+  tpAddForm.params.push({
+    key: '',
+    label: '',
+    type: 'text',
+    value: '',
+    required: false,
+    description: ''
+  })
+}
+
+// 删除自定义参数
+function removeTpParam(index: number) {
+  tpAddForm.params.splice(index, 1)
+}
+
+function openTpAddDialog() {
+  tpAddForm.name = ''
+  tpAddForm.code = ''
+  tpAddForm.type = 'api'
+  tpAddForm.category = ''
+  tpAddForm.icon = 'Connection'
+  tpAddForm.description = ''
+  tpAddForm.version = 'v1.0.0'
+  tpAddForm.params = getDefaultTpParams('api')
+  tpAddDialogVisible.value = true
+}
+
+async function submitTpAddForm() {
+  if (!tpAddFormRef.value) return
+  await tpAddFormRef.value.validate(async (valid: boolean) => {
+    if (!valid) return
+    tpAddSubmitting.value = true
+    try {
+      // 过滤掉空的自定义参数
+      const filteredParams = tpAddForm.params.filter(p => p.key && p.label)
+      const payload = {
+        name: tpAddForm.name,
+        code: tpAddForm.code,
+        type: tpAddForm.type,
+        category: tpAddForm.category,
+        icon: tpAddForm.icon,
+        description: tpAddForm.description,
+        version: tpAddForm.version,
+        params: filteredParams
+      }
+      await createThirdPartySystem(payload)
+      ElMessage.success('第三方系统已创建')
+      tpAddDialogVisible.value = false
+      fetchTpSystems()
+    } catch (e) {
+      ElMessage.success('系统已创建（Mock模式）')
+      tpAddDialogVisible.value = false
+      fetchTpSystems()
+    } finally {
+      tpAddSubmitting.value = false
+    }
+  })
+}
+
+const tpIconMap: Record<string, any> = {
+  Tickets, Files, ShoppingCart, DataLine, Cpu, Wallet, UserFilled, Message
+}
+
+function resolveTpIcon(iconName: string) {
+  return tpIconMap[iconName] || Connection
+}
+
+function tpTypeTag(type: string) {
+  const map: Record<string, { text: string; tagType: string }> = {
+    api: { text: 'API对接', tagType: 'primary' },
+    sdk: { text: 'SDK集成', tagType: 'success' },
+    database: { text: '数据库直连', tagType: 'warning' }
+  }
+  return map[type] || { text: type, tagType: 'info' }
+}
+
+function tpStatusColor(status: string) {
+  const map: Record<string, string> = { online: '#10b981', offline: '#94a3b8', error: '#ef4444' }
+  return map[status] || '#94a3b8'
+}
+
+function tpStatusText(status: string) {
+  const map: Record<string, string> = { online: '在线', offline: '离线', error: '异常' }
+  return map[status] || status
+}
+
+async function fetchTpSystems() {
+  tpSystemsLoading.value = true
+  try {
+    const res = await getThirdPartySystems()
+    tpSystems.value = res.data || []
+  } catch (e) {
+    // 兜底数据：与统一目标系统列表保持一致
+    tpSystems.value = [
+      { id: 1, name: 'OA审批系统', code: 'OA_SYSTEM', type: 'api', category: '审批流程', status: 'online', enabled: true, icon: 'Tickets', description: '企业OA审批流程系统', lastSyncTime: '2026-07-07 10:30', version: 'v3.2.1', apiCount: 28 },
+      { id: 2, name: 'ERP系统', code: 'ERP_SYSTEM', type: 'database', category: '综合管理', status: 'online', enabled: true, icon: 'Cpu', description: '企业资源计划系统', lastSyncTime: '2026-07-07 06:00', version: 'v8.0.2', apiCount: 120 },
+      { id: 3, name: 'CRM系统', code: 'CRM_SYSTEM', type: 'api', category: '客户管理', status: 'online', enabled: true, icon: 'UserFilled', description: '企业客户关系管理系统', lastSyncTime: '2026-07-07 07:00', version: 'v3.0.5', apiCount: 32 },
+      { id: 4, name: '财务系统', code: 'FINANCE_SYSTEM', type: 'database', category: '财务管理', status: 'offline', enabled: false, icon: 'Wallet', description: '企业财务管理系统', lastSyncTime: '2026-06-30 23:00', version: 'v6.3.1', apiCount: 45 },
+      { id: 5, name: '合同管理系统', code: 'CONTRACT_SYSTEM', type: 'api', category: '合同管理', status: 'online', enabled: true, icon: 'Files', description: '企业合同全生命周期管理系统', lastSyncTime: '2026-07-07 09:15', version: 'v2.8.0', apiCount: 35 },
+      { id: 6, name: '采购管理系统', code: 'PURCHASE_SYSTEM', type: 'api', category: '采购管理', status: 'online', enabled: true, icon: 'ShoppingCart', description: '企业采购管理系统', lastSyncTime: '2026-07-07 08:45', version: 'v2.5.3', apiCount: 22 },
+      { id: 7, name: '项目管理系统', code: 'PROJECT_SYSTEM', type: 'api', category: '项目管理', status: 'online', enabled: true, icon: 'DataLine', description: '企业项目管理系统', lastSyncTime: '2026-07-06 17:20', version: 'v4.1.0', apiCount: 18 },
+      { id: 8, name: '资产管理系统', code: 'ASSET_SYSTEM', type: 'api', category: '资产管理', status: 'online', enabled: true, icon: 'Message', description: '企业资产管理系统', lastSyncTime: '2026-07-07 12:00', version: 'v1.5.0', apiCount: 8 }
+    ]
+  } finally {
+    tpSystemsLoading.value = false
+  }
+}
+
+async function selectTpSystem(item: ThirdPartySystemListItem) {
+  tpDetailLoading.value = true
+  tpTestResult.value = null
+  try {
+    const res = await getThirdPartySystemDetail(item.id)
+    selectedTpSystem.value = res.data
+    for (const p of selectedTpSystem.value?.params || []) {
+      tpConfigForm[p.key] = p.value
+    }
+  } catch (e) {
+    selectedTpSystem.value = { ...item, params: [] } as ThirdPartySystem
+  } finally {
+    tpDetailLoading.value = false
+  }
+}
+
+async function saveTpConfig() {
+  if (!selectedTpSystem.value) return
+  tpConfigSaving.value = true
+  try {
+    await updateThirdPartySystemConfig(selectedTpSystem.value.id, tpConfigForm)
+    ElMessage.success('系统配置已保存')
+  } catch (e) {
+    ElMessage.success('配置已保存（Mock模式）')
+  } finally {
+    tpConfigSaving.value = false
+  }
+}
+
+async function testTpConnection() {
+  if (!selectedTpSystem.value) return
+  tpTesting.value = true
+  tpTestResult.value = null
+  try {
+    const res = await testThirdPartyConnection(selectedTpSystem.value.id)
+    tpTestResult.value = res.data
+  } catch (e) {
+    tpTestResult.value = {
+      systemId: selectedTpSystem.value.id,
+      systemName: selectedTpSystem.value.name,
+      success: selectedTpSystem.value.enabled,
+      message: selectedTpSystem.value.enabled ? '连接测试成功（Mock模式）' : '系统已禁用，无法测试连接',
+      responseTime: selectedTpSystem.value.enabled ? 128 : null,
+      testTime: new Date().toISOString().replace('T', ' ').substring(0, 19),
+      details: {}
+    }
+  } finally {
+    tpTesting.value = false
+  }
+}
+
+async function toggleTpSystem(item: ThirdPartySystemListItem) {
+  try {
+    await toggleThirdPartySystem(item.id)
+    item.enabled = !item.enabled
+    item.status = item.enabled ? 'online' : 'offline'
+    ElMessage.success(`${item.name} 已${item.enabled ? '启用' : '禁用'}`)
+  } catch (e) {
+    item.enabled = !item.enabled
+    item.status = item.enabled ? 'online' : 'offline'
+    ElMessage.success(`${item.name} 已${item.enabled ? '启用' : '禁用'}（Mock模式）`)
+  }
+}
+
+async function fetchTargetSystems() {
+  try {
+    const res = await getTargetSystems()
+    targetSystemList.value = res.data || []
+  } catch (e) {
+    // 兜底数据：与已接入系统列表保持一致
+    targetSystemList.value = [
+      { id: 1, code: 'oa', name: 'OA审批系统', description: '企业OA办公审批平台', status: 'running' },
+      { id: 2, code: 'erp', name: 'ERP系统', description: '企业资源计划综合平台', status: 'running' },
+      { id: 3, code: 'crm', name: 'CRM系统', description: '客户关系管理系统', status: 'running' },
+      { id: 4, code: 'finance', name: '财务系统', description: '财务报销与预算管理', status: 'running' },
+      { id: 5, code: 'contract', name: '合同管理系统', description: '合同全生命周期管理', status: 'stopped' },
+      { id: 6, code: 'purchase', name: '采购管理系统', description: '采购申请与供应商管理', status: 'running' },
+      { id: 7, code: 'project', name: '项目管理系统', description: '项目立项与进度管控', status: 'running' },
+      { id: 8, code: 'asset', name: '资产管理系统', description: '资产登记与变动管理', status: 'running' }
+    ]
+  }
+}
 
 /* ===========================================================
  * 类型 / 状态 映射
@@ -85,6 +399,7 @@ const connectors = ref<Connector[]>([])
 const listLoading = ref(false)
 const filterType = ref('')
 const filterStatus = ref('')
+const filterTargetSystem = ref('')
 const queryForm = reactive({ page: 1, pageSize: 20 })
 
 const dialogVisible = ref(false)
@@ -192,6 +507,7 @@ async function fetchConnectors() {
     }
     if (filterType.value) params.type = filterType.value
     if (filterStatus.value) params.status = filterStatus.value
+    if (filterTargetSystem.value) params.targetType = filterTargetSystem.value
     const res: any = await getConnectors(params)
     const list = res?.data ?? res ?? []
     if (Array.isArray(list) && list.length) {
@@ -212,7 +528,7 @@ function mockConnectors(): Connector[] {
       id: 1,
       name: 'ERP订单接口',
       type: 'rest_api',
-      targetType: 'SAP S/4HANA',
+      targetType: 'ERP系统',
       config: {
         baseURL: 'https://erp.jml.com/api',
         method: 'GET',
@@ -227,14 +543,14 @@ function mockConnectors(): Connector[] {
     },
     {
       id: 2,
-      name: 'MES生产数据库',
+      name: 'CRM客户数据库',
       type: 'database',
-      targetType: 'MES系统',
+      targetType: 'CRM系统',
       config: {
         host: '10.0.1.20',
         port: 3306,
-        database: 'mes_prod',
-        username: 'mes_user',
+        database: 'crm_db',
+        username: 'crm_user',
         password: '******'
       },
       status: 'running',
@@ -245,14 +561,15 @@ function mockConnectors(): Connector[] {
     },
     {
       id: 3,
-      name: 'WMS出库消息',
-      type: 'message_queue',
-      targetType: 'WMS仓储系统',
+      name: '财务数据库直连',
+      type: 'database',
+      targetType: '财务系统',
       config: {
         host: '10.0.1.30',
-        port: 5672,
-        queueName: 'wms_outbound',
-        exchange: 'wms_exchange'
+        port: 3306,
+        database: 'finance_db',
+        username: 'fin_user',
+        password: '******'
       },
       status: 'stopped',
       syncCount: 320,
@@ -262,14 +579,14 @@ function mockConnectors(): Connector[] {
     },
     {
       id: 4,
-      name: '财务报表传输',
+      name: '合同文件归档',
       type: 'file_transfer',
-      targetType: '财务共享中心',
+      targetType: '合同管理系统',
       config: {
         host: 'ftp.jml.com',
         port: 21,
-        path: '/finance/reports',
-        username: 'fin_user',
+        path: '/contracts/archive',
+        username: 'contract_user',
         password: '******'
       },
       status: 'error',
@@ -280,12 +597,14 @@ function mockConnectors(): Connector[] {
     },
     {
       id: 5,
-      name: 'ESB订单服务',
-      type: 'esb',
-      targetType: '集团ESB总线',
+      name: 'OA审批消息队列',
+      type: 'message_queue',
+      targetType: 'OA审批系统',
       config: {
-        wsdlUrl: 'http://esb.jml.com/ws/order?wsdl',
-        serviceName: 'OrderService'
+        host: '10.0.1.40',
+        port: 5672,
+        queueName: 'oa_approval_queue',
+        exchange: 'oa_exchange'
       },
       status: 'running',
       syncCount: 410,
@@ -295,18 +614,50 @@ function mockConnectors(): Connector[] {
     },
     {
       id: 6,
-      name: 'RPA对账机器人',
+      name: '采购订单同步RPA',
       type: 'rpa',
-      targetType: '金蝶K3',
+      targetType: '采购管理系统',
       config: {
-        scriptPath: '/scripts/reconcile.py',
-        targetApp: '金蝶K3'
+        scriptPath: '/scripts/purchase_sync.py',
+        targetApp: '采购管理系统'
       },
       status: 'stopped',
       syncCount: 88,
       lastSyncTime: '2026-07-03 18:00:00',
       createdAt: '2026-06-15 10:00:00',
       updatedAt: '2026-07-03 18:00:00'
+    },
+    {
+      id: 7,
+      name: '项目数据ESB服务',
+      type: 'esb',
+      targetType: '项目管理系统',
+      config: {
+        wsdlUrl: 'http://esb.jml.com/ws/project?wsdl',
+        serviceName: 'ProjectService'
+      },
+      status: 'running',
+      syncCount: 620,
+      lastSyncTime: '2026-07-06 10:30:00',
+      createdAt: '2026-05-20 11:00:00',
+      updatedAt: '2026-07-02 14:00:00'
+    },
+    {
+      id: 8,
+      name: '资产盘点接口',
+      type: 'rest_api',
+      targetType: '资产管理系统',
+      config: {
+        baseURL: 'https://asset.jml.com/api',
+        method: 'POST',
+        headers: '{"Content-Type":"application/json"}',
+        apiKey: 'sk-asset-5678'
+      },
+      status: 'running',
+      syncCount: 350,
+      lastSyncTime: '2026-07-06 08:00:00',
+      createdAt: '2026-06-01 09:00:00',
+      updatedAt: '2026-07-01 10:00:00'
     }
   ]
 }
@@ -453,78 +804,105 @@ function mockTemplates(): ConnectorTemplate[] {
   return [
     {
       id: 1,
-      name: 'SAP订单接口模板',
+      name: 'OA审批接口模板',
       type: 'rest_api',
-      targetType: 'SAP S/4HANA',
-      description: '对接SAP订单查询接口，支持订单列表与详情同步',
+      targetType: 'OA审批系统',
+      description: 'OA审批系统标准对接模板，支持报销、请假、出差等流程同步',
       config: {
-        baseURL: 'https://erp.jml.com/api/sap/orders',
-        method: 'GET',
+        baseURL: 'https://oa.jml.com/api/approval',
+        method: 'POST',
         headers: '{"Content-Type":"application/json"}',
         apiKey: ''
       }
     },
     {
       id: 2,
-      name: 'MES生产数据库模板',
+      name: 'ERP订单接口模板',
+      type: 'rest_api',
+      targetType: 'ERP系统',
+      description: 'ERP系统标准对接模板，支持订单、库存、采购单据同步',
+      config: {
+        baseURL: 'https://erp.jml.com/api/orders',
+        method: 'GET',
+        headers: '{"Content-Type":"application/json"}',
+        apiKey: ''
+      }
+    },
+    {
+      id: 3,
+      name: 'CRM客户数据库模板',
       type: 'database',
-      targetType: 'MES系统',
-      description: '直连MySQL生产库，同步工单、产量、设备状态数据',
+      targetType: 'CRM系统',
+      description: 'CRM客户数据库直连模板，同步客户、商机、合同数据',
       config: {
         host: '10.0.1.20',
         port: 3306,
-        database: 'mes_prod',
+        database: 'crm_db',
         username: '',
         password: ''
       }
     },
     {
-      id: 3,
-      name: 'RabbitMQ出库消息模板',
-      type: 'message_queue',
-      targetType: 'WMS仓储系统',
-      description: '订阅WMS出库消息队列，实时获取出库单状态变更',
+      id: 4,
+      name: '财务数据库模板',
+      type: 'database',
+      targetType: '财务系统',
+      description: '财务系统数据库直连模板，支持总账、应收应付数据查询',
       config: {
         host: '10.0.1.30',
-        port: 5672,
-        queueName: 'wms_outbound',
-        exchange: 'wms_exchange'
-      }
-    },
-    {
-      id: 4,
-      name: '财务报表FTP模板',
-      type: 'file_transfer',
-      targetType: '财务共享中心',
-      description: '通过FTP定时拉取财务月报、季报、年报Excel文件',
-      config: {
-        host: 'ftp.jml.com',
-        port: 21,
-        path: '/finance/reports',
+        port: 3306,
+        database: 'finance_db',
         username: '',
         password: ''
       }
     },
     {
       id: 5,
-      name: '集团ESB订单服务模板',
-      type: 'esb',
-      targetType: '集团ESB总线',
-      description: '通过WSDL对接集团ESB总线，调用订单同步Web Service',
+      name: '合同文件传输模板',
+      type: 'file_transfer',
+      targetType: '合同管理系统',
+      description: '合同文件定时传输模板，支持合同归档文件同步',
       config: {
-        wsdlUrl: 'http://esb.jml.com/ws/order?wsdl',
-        serviceName: 'OrderService'
+        host: 'ftp.jml.com',
+        port: 21,
+        path: '/contracts/archive',
+        username: '',
+        password: ''
       }
     },
     {
       id: 6,
-      name: 'RPA对账机器人模板',
-      type: 'rpa',
-      targetType: '金蝶K3',
-      description: 'RPA机器人定时执行银企对账脚本，输出对账结果',
+      name: '采购消息队列模板',
+      type: 'message_queue',
+      targetType: '采购管理系统',
+      description: '采购管理系统消息队列模板，订阅采购订单状态变更',
       config: {
-        scriptPath: '/scripts/reconcile.py',
-        targetApp: '金蝶K3'
+        host: '10.0.1.40',
+        port: 5672,
+        queueName: 'purchase_order_queue',
+        exchange: 'purchase_exchange'
+      }
+    },
+    {
+      id: 7,
+      name: '项目ESB服务模板',
+      type: 'esb',
+      targetType: '项目管理系统',
+      description: '项目管理系统ESB服务模板，通过WSDL同步项目数据',
+      config: {
+        wsdlUrl: 'http://esb.jml.com/ws/project?wsdl',
+        serviceName: 'ProjectService'
+      }
+    },
+    {
+      id: 8,
+      name: '资产盘点RPA模板',
+      type: 'rpa',
+      targetType: '资产管理系统',
+      description: '资产管理系统RPA模板，定时执行资产盘点与对账',
+      config: {
+        scriptPath: '/scripts/asset_inventory.py',
+        targetApp: '资产管理系统'
       }
     }
   ]
@@ -533,6 +911,7 @@ function mockTemplates(): ConnectorTemplate[] {
 function resetFilter() {
   filterType.value = ''
   filterStatus.value = ''
+  filterTargetSystem.value = ''
   queryForm.page = 1
   fetchConnectors()
 }
@@ -799,10 +1178,13 @@ watch(activeTab, (val) => {
     fetchMonitorData()
   } else if (val === 'library') {
     fetchTplLibrary()
+  } else if (val === 'systems') {
+    fetchTpSystems()
   }
 })
 
 onMounted(() => {
+  fetchTargetSystems()
   fetchConnectors()
   fetchTemplates()
   window.addEventListener('resize', handleResize)
@@ -874,6 +1256,21 @@ onUnmounted(() => {
               <el-option label="运行中" value="running" />
               <el-option label="已停止" value="stopped" />
               <el-option label="异常" value="error" />
+            </el-select>
+            <el-select
+              v-model="filterTargetSystem"
+              placeholder="全部目标系统"
+              clearable
+              filterable
+              style="width: 200px"
+              @change="fetchConnectors"
+            >
+              <el-option
+                v-for="sys in targetSystemList"
+                :key="sys.id ?? sys.code ?? sys.name"
+                :label="sys.name"
+                :value="sys.name"
+              />
             </el-select>
             <el-button :icon="Refresh" @click="resetFilter">重置</el-button>
           </div>
@@ -1115,7 +1512,304 @@ onUnmounted(() => {
           />
         </div>
       </el-tab-pane>
+
+      <!-- ============ Tab4: 第三方系统管理 ============ -->
+      <el-tab-pane label="第三方系统管理" name="systems">
+        <el-row :gutter="16">
+          <!-- 系统列表 -->
+          <el-col :xs="24" :sm="10" :md="8">
+            <el-card shadow="never" class="tp-list-card" v-loading="tpSystemsLoading">
+              <template #header>
+                <div class="card-header-flex">
+                  <span class="card-title">第三方系统</span>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <el-tag size="small" type="info">{{ tpSystems.length }} 个</el-tag>
+                    <el-button type="primary" :icon="Plus" size="small" @click="openTpAddDialog">新增系统</el-button>
+                  </div>
+                </div>
+              </template>
+              <div class="tp-list">
+                <div
+                  v-for="item in tpSystems"
+                  :key="item.id"
+                  class="tp-item"
+                  :class="{ active: selectedTpSystem?.id === item.id, disabled: !item.enabled }"
+                  @click="selectTpSystem(item)"
+                >
+                  <div class="tp-item-top">
+                    <div class="tp-icon-wrap" :style="{ background: item.enabled ? 'linear-gradient(135deg, #1a3a5c, #3b82f6)' : '#dcdfe6' }">
+                      <el-icon :size="18"><component :is="resolveTpIcon(item.icon)" /></el-icon>
+                    </div>
+                    <div class="tp-item-info">
+                      <div class="tp-item-name">
+                        {{ item.name }}
+                        <span class="tp-status-dot" :style="{ background: tpStatusColor(item.status) }"></span>
+                      </div>
+                      <div class="tp-item-desc">{{ item.description }}</div>
+                    </div>
+                  </div>
+                  <div class="tp-item-meta">
+                    <el-tag :type="tpTypeTag(item.type).tagType" size="small" effect="plain">{{ tpTypeTag(item.type).text }}</el-tag>
+                    <el-tag size="small" effect="plain">{{ item.category }}</el-tag>
+                    <el-tag :type="item.enabled ? 'success' : 'info'" size="small">{{ tpStatusText(item.status) }}</el-tag>
+                    <el-button
+                      size="small"
+                      link
+                      :type="item.enabled ? 'danger' : 'success'"
+                      @click.stop="toggleTpSystem(item)"
+                    >
+                      {{ item.enabled ? '禁用' : '启用' }}
+                    </el-button>
+                  </div>
+                </div>
+                <el-empty v-if="!tpSystems.length" description="暂无接入系统" />
+              </div>
+            </el-card>
+          </el-col>
+
+          <!-- 系统详情 & 参数配置 -->
+          <el-col :xs="24" :sm="14" :md="16">
+            <el-empty v-if="!selectedTpSystem" description="请选择左侧系统查看详情和配置参数" />
+
+            <div v-else v-loading="tpDetailLoading" class="tp-detail">
+              <!-- 系统概览 -->
+              <el-card shadow="never" class="tp-overview-card">
+                <template #header>
+                  <div class="card-header-flex">
+                    <span class="card-title">
+                      <el-icon :size="18"><component :is="resolveTpIcon(selectedTpSystem.icon)" /></el-icon>
+                      {{ selectedTpSystem.name }} — 系统概览
+                    </span>
+                    <el-tag :type="selectedTpSystem.enabled ? 'success' : 'info'" size="small">
+                      {{ tpStatusText(selectedTpSystem.status) }}
+                    </el-tag>
+                  </div>
+                </template>
+                <el-descriptions :column="3" border size="small">
+                  <el-descriptions-item label="系统编码">{{ selectedTpSystem.code }}</el-descriptions-item>
+                  <el-descriptions-item label="对接方式">
+                    <el-tag :type="tpTypeTag(selectedTpSystem.type).tagType" size="small">{{ tpTypeTag(selectedTpSystem.type).text }}</el-tag>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="版本">{{ selectedTpSystem.version }}</el-descriptions-item>
+                  <el-descriptions-item label="接口数量">{{ selectedTpSystem.apiCount }} 个</el-descriptions-item>
+                  <el-descriptions-item label="业务分类">{{ selectedTpSystem.category }}</el-descriptions-item>
+                  <el-descriptions-item label="最近同步">{{ selectedTpSystem.lastSyncTime }}</el-descriptions-item>
+                  <el-descriptions-item label="系统描述" :span="3">{{ selectedTpSystem.description }}</el-descriptions-item>
+                </el-descriptions>
+              </el-card>
+
+              <!-- 对接参数配置 -->
+              <el-card shadow="never" class="tp-config-card" style="margin-top: 16px;">
+                <template #header>
+                  <div class="card-header-flex">
+                    <span class="card-title">
+                      <el-icon><Link /></el-icon>
+                      对接参数配置
+                    </span>
+                    <div style="display: flex; gap: 8px;">
+                      <el-button
+                        type="warning"
+                        plain
+                        size="small"
+                        :icon="Connection"
+                        :loading="tpTesting"
+                        @click="testTpConnection"
+                      >
+                        测试连接
+                      </el-button>
+                      <el-button
+                        type="primary"
+                        size="small"
+                        :icon="Check"
+                        :loading="tpConfigSaving"
+                        @click="saveTpConfig"
+                      >
+                        保存配置
+                      </el-button>
+                    </div>
+                  </div>
+                </template>
+
+                <el-form label-width="140px" label-position="right" size="small">
+                  <el-form-item
+                    v-for="param in selectedTpSystem.params"
+                    :key="param.key"
+                    :label="param.label"
+                    :required="param.required"
+                  >
+                    <el-input
+                      v-if="param.type === 'text'"
+                      v-model="tpConfigForm[param.key]"
+                      :placeholder="param.description"
+                    />
+                    <el-input
+                      v-else-if="param.type === 'password'"
+                      v-model="tpConfigForm[param.key]"
+                      type="password"
+                      show-password
+                      :placeholder="param.description"
+                    />
+                    <el-input-number
+                      v-else-if="param.type === 'number'"
+                      v-model="tpConfigForm[param.key]"
+                      :min="1"
+                      controls-position="right"
+                      style="width: 200px;"
+                    />
+                    <el-select
+                      v-else-if="param.type === 'select'"
+                      v-model="tpConfigForm[param.key]"
+                      style="width: 100%;"
+                    >
+                      <el-option v-for="opt in param.options || []" :key="opt" :label="opt" :value="opt" />
+                    </el-select>
+                    <div class="param-desc">{{ param.description }}</div>
+                  </el-form-item>
+                </el-form>
+
+                <!-- 安全提示 -->
+                <div class="config-security-tip">
+                  <el-icon :size="14"><Warning /></el-icon>
+                  <span>密钥类参数已加密存储，仅可在本页面修改。建议定期轮换密钥，确保系统安全。</span>
+                </div>
+              </el-card>
+
+              <!-- 连接测试结果 -->
+              <el-card v-if="tpTestResult" shadow="never" class="tp-test-card" style="margin-top: 16px;">
+                <template #header>
+                  <div class="card-header-flex">
+                    <span class="card-title">连接测试结果</span>
+                    <el-tag :type="tpTestResult.success ? 'success' : 'danger'" effect="dark" size="small">
+                      <el-icon v-if="tpTestResult.success"><CircleCheck /></el-icon>
+                      <el-icon v-else><CircleClose /></el-icon>
+                      {{ tpTestResult.success ? '连接成功' : '连接失败' }}
+                    </el-tag>
+                  </div>
+                </template>
+                <el-descriptions :column="2" border size="small">
+                  <el-descriptions-item label="测试时间">{{ tpTestResult.testTime }}</el-descriptions-item>
+                  <el-descriptions-item label="响应时间" v-if="tpTestResult.responseTime">
+                    <span :class="{ 'resp-fast': tpTestResult.responseTime < 200, 'resp-slow': tpTestResult.responseTime > 500 }">
+                      {{ tpTestResult.responseTime }}ms
+                    </span>
+                  </el-descriptions-item>
+                  <el-descriptions-item label="测试结果" :span="2">
+                    {{ tpTestResult.message }}
+                  </el-descriptions-item>
+                  <el-descriptions-item v-if="tpTestResult.details?.apiVersion" label="API版本">{{ tpTestResult.details.apiVersion }}</el-descriptions-item>
+                  <el-descriptions-item v-if="tpTestResult.details?.rateLimit" label="限流策略">{{ tpTestResult.details.rateLimit }}</el-descriptions-item>
+                  <el-descriptions-item v-if="tpTestResult.details?.errorCode" label="错误码">
+                    <el-tag type="danger" size="small">{{ tpTestResult.details.errorCode }}</el-tag>
+                  </el-descriptions-item>
+                  <el-descriptions-item v-if="tpTestResult.details?.suggestion" label="修复建议" :span="2">{{ tpTestResult.details.suggestion }}</el-descriptions-item>
+                </el-descriptions>
+              </el-card>
+            </div>
+          </el-col>
+        </el-row>
+      </el-tab-pane>
     </el-tabs>
+
+    <!-- ============ 新增第三方系统弹窗 ============ -->
+    <el-dialog
+      v-model="tpAddDialogVisible"
+      title="新增第三方系统"
+      width="720px"
+      :close-on-click-modal="false"
+      destroy-on-close
+    >
+      <el-form
+        ref="tpAddFormRef"
+        :model="tpAddForm"
+        :rules="tpAddFormRules"
+        label-width="120px"
+        label-position="right"
+      >
+        <el-form-item label="系统名称" prop="name">
+          <el-input v-model="tpAddForm.name" placeholder="如：OA审批系统" />
+        </el-form-item>
+        <el-form-item label="系统编码" prop="code">
+          <el-input v-model="tpAddForm.code" placeholder="如：OA_SYSTEM（英文大写+下划线）" />
+        </el-form-item>
+        <el-form-item label="对接方式" prop="type">
+          <el-select v-model="tpAddForm.type" style="width: 100%">
+            <el-option v-for="opt in tpTypeOptions" :key="opt.value" :label="opt.label" :value="opt.value" />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="业务分类" prop="category">
+          <el-input v-model="tpAddForm.category" placeholder="如：审批流程、财务管理、客户管理" />
+        </el-form-item>
+        <el-form-item label="系统图标">
+          <el-select v-model="tpAddForm.icon" style="width: 100%">
+            <el-option v-for="opt in tpIconOptions" :key="opt.value" :label="opt.label" :value="opt.value">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <el-icon :size="16"><component :is="resolveTpIcon(opt.value)" /></el-icon>
+                <span>{{ opt.label }}</span>
+              </div>
+            </el-option>
+          </el-select>
+        </el-form-item>
+        <el-form-item label="系统描述" prop="description">
+          <el-input v-model="tpAddForm.description" type="textarea" :rows="2" placeholder="请简要描述系统功能和用途" />
+        </el-form-item>
+        <el-form-item label="版本号">
+          <el-input v-model="tpAddForm.version" placeholder="如：v1.0.0" />
+        </el-form-item>
+
+        <el-divider content-position="left">
+          <el-icon><Setting /></el-icon>
+          <span style="margin-left: 4px">对接参数配置</span>
+        </el-divider>
+
+        <!-- 参数列表 -->
+        <div v-for="(param, idx) in tpAddForm.params" :key="idx" class="tp-param-row">
+          <el-row :gutter="8">
+            <el-col :span="6">
+              <el-input v-model="param.key" placeholder="参数键名" size="small" />
+            </el-col>
+            <el-col :span="6">
+              <el-input v-model="param.label" placeholder="显示名称" size="small" />
+            </el-col>
+            <el-col :span="4">
+              <el-select v-model="param.type" size="small" style="width: 100%">
+                <el-option label="文本" value="text" />
+                <el-option label="密码" value="password" />
+                <el-option label="数字" value="number" />
+                <el-option label="下拉" value="select" />
+              </el-select>
+            </el-col>
+            <el-col :span="6">
+              <el-input v-model="param.value" :placeholder="param.type === 'password' ? '密钥值' : '默认值'" size="small" />
+            </el-col>
+            <el-col :span="2" style="display: flex; align-items: center;">
+              <el-checkbox v-model="param.required" size="small">必填</el-checkbox>
+            </el-col>
+          </el-row>
+          <el-row :gutter="8" style="margin-top: 4px;">
+            <el-col :span="18">
+              <el-input v-model="param.description" placeholder="参数说明" size="small" />
+            </el-col>
+            <el-col :span="6" v-if="param.type === 'select'">
+              <el-input v-model="(param as any).optionsStr" placeholder="选项用逗号分隔" size="small" @change="(v: string) => { param.options = v ? v.split(',').map(o => o.trim()) : [] }" />
+            </el-col>
+            <el-col :span="6" style="display: flex; align-items: center; justify-content: flex-end;">
+              <el-button type="danger" :icon="Delete" size="small" link @click="removeTpParam(idx)">删除</el-button>
+            </el-col>
+          </el-row>
+        </div>
+
+        <el-button type="primary" :icon="Plus" size="small" plain @click="addTpParam" style="margin-top: 8px;">
+          添加自定义参数
+        </el-button>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="tpAddDialogVisible = false">取消</el-button>
+          <el-button type="primary" :loading="tpAddSubmitting" @click="submitTpAddForm">创建系统</el-button>
+        </div>
+      </template>
+    </el-dialog>
 
     <!-- ============ 新建/编辑弹窗 ============ -->
     <el-dialog
@@ -1146,7 +1840,21 @@ onUnmounted(() => {
           </el-select>
         </el-form-item>
         <el-form-item label="目标系统" prop="targetType">
-          <el-input v-model="form.targetType" placeholder="请输入目标系统名称" />
+          <el-select v-model="form.targetType" placeholder="请选择目标系统" style="width: 100%" filterable allow-create>
+            <el-option
+              v-for="ts in targetSystemList"
+              :key="ts.id"
+              :label="ts.name"
+              :value="ts.name"
+            >
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%">
+                <span>{{ ts.name }}</span>
+                <el-tag :type="ts.status === 'running' ? 'success' : ts.status === 'error' ? 'danger' : 'info'" size="small" effect="plain">
+                  {{ ts.status === 'running' ? '在线' : ts.status === 'stopped' ? '离线' : '异常' }}
+                </el-tag>
+              </div>
+            </el-option>
+          </el-select>
         </el-form-item>
 
         <el-divider content-position="left">
@@ -1567,5 +2275,143 @@ onUnmounted(() => {
   .action-area .el-button {
     flex: 1;
   }
+}
+
+/* ============ 第三方系统管理 ============ */
+.card-header-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a3a5c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tp-list-card :deep(.el-card__body) {
+  padding: 8px;
+  max-height: 580px;
+  overflow-y: auto;
+}
+.tp-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tp-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+}
+.tp-item:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
+}
+.tp-item.active {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+.tp-item.disabled {
+  opacity: 0.65;
+}
+.tp-item-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.tp-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+.tp-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.tp-item-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a3a5c;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tp-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.tp-item-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tp-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.tp-detail {
+  padding: 0;
+}
+.tp-overview-card :deep(.el-card__body) {
+  padding: 12px;
+}
+.tp-config-card :deep(.el-card__body) {
+  padding: 16px;
+}
+.param-desc {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+.config-security-tip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #92400e;
+  margin-top: 12px;
+}
+.tp-test-card :deep(.el-card__body) {
+  padding: 12px;
+}
+.resp-fast {
+  color: #10b981;
+  font-weight: 600;
+}
+.resp-slow {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* ============ 新增系统弹窗参数行 ============ */
+.tp-param-row {
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 </style>
