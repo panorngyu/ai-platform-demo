@@ -80,6 +80,21 @@ const breadcrumbItems = computed(() => {
   const items: Array<{ title: string; path?: string }> = [
     { title: '首页', path: '/todo' }
   ]
+
+  const from = route.query.from as string | undefined
+  const seg = route.path.split('/')[1]
+
+  // 审批/AI审核页面：根据来源决定面包屑层级
+  if (seg === 'approval' || seg === 'ai-audit') {
+    if (from === 'todo') {
+      items.push({ title: '统一待办中心', path: '/todo' })
+    } else if (from === 'agent') {
+      items.push({ title: '智能体中心', path: '/agent' })
+    }
+    items.push({ title: route.meta?.title as string })
+    return items
+  }
+
   // 支持自定义多级面包屑（用于智能体中心等层级入口）
   const breadcrumbs = route.meta?.breadcrumb as Array<{ title: string; path?: string }> | undefined
   if (breadcrumbs && breadcrumbs.length > 0) {
@@ -95,8 +110,14 @@ const breadcrumbItems = computed(() => {
 
 const activeMenu = computed(() => {
   const seg = route.path.split('/')[1]
+  const from = route.query.from as string | undefined
+  // 审批/AI审核页面：根据来源决定左侧菜单高亮
+  if (seg === 'approval' || seg === 'ai-audit') {
+    if (from === 'todo') return '/todo'
+    if (from === 'agent') return '/agent'
+  }
   // 智能体相关页面统一高亮「智能体中心」
-  const agentSegments = ['expense', 'contract', 'approval', 'ai-audit']
+  const agentSegments = ['expense', 'contract']
   if (agentSegments.includes(seg)) {
     return '/agent'
   }
