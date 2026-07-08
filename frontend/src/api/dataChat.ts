@@ -37,9 +37,13 @@ export interface ChatSession {
 
 export interface ChatConnector {
   id: number
+  connectorId?: number  // 关联的连接器ID（用于实际查询）
   name: string
+  code?: string
   type?: string
+  targetType?: string
   status?: 'running' | 'stopped' | 'error'
+  description?: string
 }
 
 // ============ 会话管理 ============
