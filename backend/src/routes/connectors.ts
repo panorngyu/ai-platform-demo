@@ -7,15 +7,14 @@ const router = Router()
 
 router.use(authMiddleware)
 
-// ==================== 目标系统 ====================
+// ==================== 统一目标系统列表 ====================
 
-// 目标系统列表
 router.get('/target-systems', async (req: Request, res: Response) => {
   try {
     const list = await connectorService.getTargetSystems()
-    success(res, list)
-  } catch (err: any) {
-    fail(res, err.message || '获取目标系统列表失败')
+    res.json(success(list))
+  } catch (error) {
+    res.json(fail((error as Error).message))
   }
 })
 
