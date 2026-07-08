@@ -338,3 +338,75 @@ export function getErrorLogs(params?: any) {
 export function getLogStats() {
   return request.get('/system-admin/logs/stats')
 }
+
+// ============ 第三方系统管理 ============
+export interface ThirdPartySystemParam {
+  key: string
+  label: string
+  type: 'text' | 'password' | 'number' | 'select'
+  value: string
+  required: boolean
+  description: string
+  options?: string[]
+}
+
+export interface ThirdPartySystem {
+  id: number
+  name: string
+  code: string
+  type: 'api' | 'sdk' | 'database'
+  category: string
+  status: 'online' | 'offline' | 'error'
+  enabled: boolean
+  icon: string
+  description: string
+  lastSyncTime: string
+  version: string
+  apiCount: number
+  params: ThirdPartySystemParam[]
+}
+
+export interface ThirdPartySystemListItem {
+  id: number
+  name: string
+  code: string
+  type: 'api' | 'sdk' | 'database'
+  category: string
+  status: 'online' | 'offline' | 'error'
+  enabled: boolean
+  icon: string
+  description: string
+  lastSyncTime: string
+  version: string
+  apiCount: number
+}
+
+export interface ConnectionTestResult {
+  systemId: number
+  systemName: string
+  success: boolean
+  message: string
+  responseTime: number | null
+  testTime: string
+  details: any
+}
+
+export function getThirdPartySystems() {
+  return request.get<ThirdPartySystemListItem[]>('/system-admin/third-party/list')
+}
+
+export function getThirdPartySystemDetail(id: number) {
+  return request.get<ThirdPartySystem>(`/system-admin/third-party/${id}`)
+}
+
+export function updateThirdPartySystemConfig(id: number, params: Record<string, string>) {
+  return request.put(`/system-admin/third-party/${id}/config`, { params })
+}
+
+export function testThirdPartyConnection(id: number) {
+  return request.post<ConnectionTestResult>(`/system-admin/third-party/${id}/test-connection`)
+}
+
+export function toggleThirdPartySystem(id: number) {
+  return request.put(`/system-admin/third-party/${id}/toggle`)
+}
