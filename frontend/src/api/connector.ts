@@ -37,6 +37,15 @@ export interface ConnectorTemplate {
   config: any
 }
 
+export interface TargetSystem {
+  id: number
+  code: string
+  name: string
+  description: string
+  status: string
+  connectorId?: number
+}
+
 export interface MonitorOverview {
   total: number
   running: number
@@ -67,6 +76,11 @@ export interface MonitorDetail {
     duration: number
     message: string
   }>
+}
+
+// ============ 目标系统列表 ============
+export function getTargetSystems() {
+  return request.get<TargetSystem[]>('/connectors/target-systems')
 }
 
 // ============ 连接器 CRUD ============
@@ -123,18 +137,4 @@ export function testConnector(id: number) {
 
 export function testConnection(config: any) {
   return request.post('/connectors/test', config)
-}
-
-// ============ 目标系统 ============
-export interface TargetSystem {
-  id: number
-  code: string
-  name: string
-  description: string
-  status: string
-  connectorId: number
-}
-
-export function getTargetSystems() {
-  return request.get<TargetSystem[]>('/connectors/target-systems')
 }
