@@ -598,6 +598,18 @@ onMounted(() => {
               </el-tag>
             </div>
             <div class="m-row">
+              <span class="m-label">紧急度</span>
+              <el-tag
+                v-if="urgencyTag(item.urgency)"
+                :type="urgencyTag(item.urgency)!.type as any"
+                size="small"
+                effect="plain"
+              >
+                {{ urgencyTag(item.urgency)!.text }}
+              </el-tag>
+              <span v-else>—</span>
+            </div>
+            <div class="m-row">
               <span class="m-label">申请人</span>
               <span>{{ item.applicant }} · {{ item.department }}</span>
             </div>
