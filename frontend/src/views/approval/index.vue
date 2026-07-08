@@ -31,6 +31,15 @@ const route = useRoute()
 const router = useRouter()
 
 const todoId = computed(() => route.params.id as string)
+const fromPage = computed(() => (route.query.from as string) || 'todo')
+
+function goBack() {
+  if (fromPage.value === 'agent') {
+    router.push('/agent')
+  } else {
+    router.push('/todo')
+  }
+}
 
 // ============ 详情 ============
 const detail = ref<ApprovalDetail | null>(null)
@@ -283,7 +292,7 @@ async function handleApprove(action: 'approve' | 'reject' | 'return' | 'transfer
       opinion: opinion.value
     })
     ElMessage.success('审批操作成功')
-    setTimeout(() => router.push('/todo'), 800)
+    setTimeout(() => goBack(), 800)
   } catch (e) {
     // ignore
   } finally {
@@ -329,7 +338,7 @@ onMounted(() => {
   <div class="page-container approval-page" v-loading="loading">
     <!-- 顶部 -->
     <div class="page-header">
-      <el-button :icon="ArrowLeft" text @click="router.push('/todo')">返回</el-button>
+      <el-button :icon="ArrowLeft" text @click="goBack()">返回</el-button>
       <div class="header-title">
         <span class="title-text">{{ detail?.title || '审批详情' }}</span>
         <el-tag
