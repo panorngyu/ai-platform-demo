@@ -7,21 +7,47 @@ function fmt(t?: Date): string | undefined {
   return s.replace('T', ' ').slice(0, 19)
 }
 
+const typeMap: Record<string, string> = {
+  expense: '报销',
+  contract: '合同',
+  purchase: '采购',
+  project: '项目',
+  asset: '资产'
+}
+
+const urgencyMap: Record<string, string> = {
+  high: '紧急',
+  medium: '一般',
+  low: '低'
+}
+
+const statusMap: Record<string, string> = {
+  pending: '待审批',
+  processing: '处理中',
+  approved: '已通过',
+  rejected: '已驳回',
+  transferred: '已转交'
+}
+
 function normalizeTodo(t: any): any {
-  // 将数据库字段名映射为前端期望字段名
+  const type = t.type
+  const urgency = t.urgency ?? t.priority
+  const status = t.status
+  // 将数据库字段名映射为前端期望字段名，自动补充中文名
   return {
     id: t.id,
     title: t.title,
-    type: t.type,
-    typeName: t.typeName,
+    type,
+    typeName: t.typeName || typeMap[type] || type,
     sourceSystem: t.sourceSystem ?? t.source,
-    urgency: t.urgency ?? t.priority,
+    urgency,
+    urgencyName: t.urgencyName || urgencyMap[urgency] || urgency,
     amount: t.amount,
     applicant: t.applicant ?? t.applicantName,
     applicantId: t.applicantId,
     department: t.department,
-    status: t.status,
-    statusName: t.statusName,
+    status,
+    statusName: t.statusName || statusMap[status] || status,
     isTimeout: t.isTimeout,
     isUrgent: t.isUrgent,
     submitTime: t.submitTime ?? fmt(t.submittedAt) ?? fmt(t.createdAt),
@@ -40,9 +66,6 @@ const mockTodos: any[] = [
     id: 1,
     title: '关于2026年Q3营销费用报销审批',
     sourceSystem: '财务系统',
-    type: 'expense',
-    urgency: 'high',
-    amount: 58000,
     applicantId: 4,
     applicant: '王采购',
     department: '采购部',
@@ -55,7 +78,7 @@ const mockTodos: any[] = [
   {
     id: 2,
     title: '原材料采购合同审批（供应商：河北某粮油）',
-    sourceSystem: '合同系统',
+    sourceSystem: '合同管理系统',
     type: 'contract',
     urgency: 'high',
     amount: 1280000,
@@ -71,7 +94,7 @@ const mockTodos: any[] = [
   {
     id: 3,
     title: '华北区渠道拓展项目立项',
-    sourceSystem: '项目系统',
+    sourceSystem: '项目管理系统',
     type: 'project',
     urgency: 'medium',
     amount: 350000,
@@ -87,7 +110,7 @@ const mockTodos: any[] = [
   {
     id: 4,
     title: '办公设备采购申请',
-    sourceSystem: '采购系统',
+    sourceSystem: '采购管理系统',
     type: 'purchase',
     urgency: 'low',
     amount: 36000,
@@ -104,7 +127,7 @@ const mockTodos: any[] = [
   {
     id: 5,
     title: '年度服务器扩容预算审批',
-    sourceSystem: '资产系统',
+    sourceSystem: '资产管理系统',
     type: 'asset',
     urgency: 'high',
     amount: 860000,
@@ -120,7 +143,7 @@ const mockTodos: any[] = [
   {
     id: 6,
     title: '新员工办公用品领用申请',
-    sourceSystem: '采购系统',
+    sourceSystem: '采购管理系统',
     type: 'purchase',
     urgency: 'low',
     amount: 1200,
@@ -136,7 +159,7 @@ const mockTodos: any[] = [
   {
     id: 7,
     title: '客户年度框架协议续签',
-    sourceSystem: '合同系统',
+    sourceSystem: '合同管理系统',
     type: 'contract',
     urgency: 'high',
     amount: 5200000,
@@ -168,7 +191,7 @@ const mockTodos: any[] = [
   {
     id: 9,
     title: '研发中心实验室装修立项',
-    sourceSystem: '项目系统',
+    sourceSystem: '项目管理系统',
     type: 'project',
     urgency: 'low',
     amount: 680000,
@@ -200,7 +223,7 @@ const mockTodos: any[] = [
   {
     id: 11,
     title: '知识产权代理服务合同审批',
-    sourceSystem: '合同系统',
+    sourceSystem: '合同管理系统',
     type: 'contract',
     urgency: 'medium',
     amount: 150000,
@@ -216,7 +239,7 @@ const mockTodos: any[] = [
   {
     id: 12,
     title: '中秋礼盒采购方案',
-    sourceSystem: '采购系统',
+    sourceSystem: '采购管理系统',
     type: 'purchase',
     urgency: 'low',
     amount: 28000,
@@ -273,7 +296,7 @@ export const todoService = {
 
     const total = list.length
     const start = (page - 1) * pageSize
-    return { list: list.slice(start, start + pageSize), total, page, pageSize }
+    return { list: list.slice(start, start + pageSize).map(normalizeTodo), total, page, pageSize }
   },
 
   // 获取待办详情
@@ -286,7 +309,7 @@ export const todoService = {
     }
     const todo = mockTodos.find((t) => t.id === id)
     if (!todo) return null
-    return { ...todo, records: [] }
+    return normalizeTodo({ ...todo, records: [] })
   },
 
   // 批量审批
