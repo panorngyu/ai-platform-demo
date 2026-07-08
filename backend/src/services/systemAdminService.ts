@@ -433,46 +433,46 @@ const thirdPartySystems = [
   },
   {
     id: 7,
-    name: 'HR人事系统',
-    code: 'HR_SYSTEM',
+    name: 'CRM系统',
+    code: 'CRM_SYSTEM',
     type: 'api',
-    category: '人事管理',
+    category: '客户管理',
     status: 'online',
     enabled: true,
     icon: 'UserFilled',
-    description: '企业人力资源管理系统，支持员工信息、考勤、薪酬、组织架构管理',
+    description: '企业客户关系管理系统，支持客户信息、商机、合同、销售线索管理',
     lastSyncTime: '2026-07-07 07:00:00',
     version: 'v3.0.5',
     apiCount: 32,
     params: [
-      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://hr.example.com/api/v3', required: true, description: 'HR系统API基础地址' },
-      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'hr_sk_9i0j1k2l', required: true, description: '接口认证密钥' },
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://crm.example.com/api/v3', required: true, description: 'CRM系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'crm_sk_9i0j1k2l', required: true, description: '接口认证密钥' },
       { key: 'tenantId', label: '租户ID', type: 'text', value: 'tenant_001', required: true, description: '多租户模式下的租户标识' },
-      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/hr', required: false, description: '人事变动回调地址' },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/crm', required: false, description: '客户变动回调地址' },
       { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间' },
       { key: 'syncMode', label: '同步模式', type: 'select', value: 'realtime', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
     ]
   },
   {
     id: 8,
-    name: '邮件系统',
-    code: 'MAIL_SYSTEM',
-    type: 'sdk',
-    category: '通信协作',
+    name: '资产管理系统',
+    code: 'ASSET_SYSTEM',
+    type: 'api',
+    category: '资产管理',
     status: 'online',
     enabled: true,
     icon: 'Message',
-    description: '企业邮件系统，用于审批通知、流程提醒、报表推送等邮件发送',
+    description: '企业资产管理系统，支持资产登记、盘点、调拨、报废全生命周期管理',
     lastSyncTime: '2026-07-07 12:00:00',
     version: 'v1.5.0',
     apiCount: 8,
     params: [
-      { key: 'smtpHost', label: 'SMTP服务器', type: 'text', value: 'smtp.exmail.qq.com', required: true, description: 'SMTP邮件服务器地址' },
-      { key: 'smtpPort', label: 'SMTP端口', type: 'number', value: '465', required: true, description: 'SMTP端口（SSL加密）' },
-      { key: 'smtpUser', label: '发件账号', type: 'text', value: 'ai-notify@company.com', required: true, description: 'SMTP认证账号' },
-      { key: 'smtpPassword', label: '发件密码', type: 'password', value: 'mail_pwd_encrypted', required: true, description: 'SMTP认证密码' },
-      { key: 'fromName', label: '发件人名称', type: 'text', value: 'AI审批平台', required: false, description: '邮件显示的发件人名称' },
-      { key: 'sslEnabled', label: 'SSL加密', type: 'select', value: 'true', required: false, description: '是否启用SSL加密', options: ['true', 'false'] }
+      { key: 'apiBaseUrl', label: 'API地址', type: 'text', value: 'https://asset.example.com/api/v1', required: true, description: '资产系统API基础地址' },
+      { key: 'apiKey', label: 'API密钥', type: 'password', value: 'asset_sk_m3n4o5p6', required: true, description: '接口认证密钥' },
+      { key: 'depreciationMethod', label: '折旧方法', type: 'select', value: 'straight_line', required: false, description: '资产折旧计算方法', options: ['straight_line', 'double_declining', 'sum_of_years'] },
+      { key: 'callbackUrl', label: '回调地址', type: 'text', value: 'https://ai-platform.example.com/callback/asset', required: false, description: '资产状态变更回调地址' },
+      { key: 'timeout', label: '超时时间(ms)', type: 'number', value: '5000', required: false, description: '请求超时时间' },
+      { key: 'syncMode', label: '同步模式', type: 'select', value: 'batch', required: false, description: '数据同步模式', options: ['realtime', 'batch', 'schedule'] }
     ]
   }
 ]
@@ -1187,6 +1187,47 @@ export const systemAdminService = {
         suggestion: '请检查API地址和认证参数是否正确'
       }
     }
+  },
+
+  createThirdPartySystem(data: {
+    name: string
+    code: string
+    type: 'api' | 'sdk' | 'database'
+    category: string
+    icon: string
+    description: string
+    version?: string
+    params?: Array<{
+      key: string
+      label: string
+      type: 'text' | 'password' | 'number' | 'select'
+      value: string
+      required: boolean
+      description: string
+      options?: string[]
+    }>
+  }) {
+    const newId = thirdPartySystems.length > 0
+      ? Math.max(...thirdPartySystems.map(s => s.id)) + 1
+      : 1
+    const now = new Date().toISOString().replace('T', ' ').substring(0, 19)
+    const newSystem = {
+      id: newId,
+      name: data.name,
+      code: data.code,
+      type: data.type,
+      category: data.category,
+      status: 'offline' as const,
+      enabled: false,
+      icon: data.icon || 'Connection',
+      description: data.description,
+      lastSyncTime: now,
+      version: data.version || 'v1.0.0',
+      apiCount: 0,
+      params: data.params || []
+    }
+    thirdPartySystems.push(newSystem)
+    return newSystem
   },
 
   toggleThirdPartySystem(id: number) {
