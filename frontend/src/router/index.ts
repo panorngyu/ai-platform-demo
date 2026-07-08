@@ -21,28 +21,34 @@ const routes: RouteRecordRaw[] = [
         meta: { title: '统一待办中心', icon: 'Tickets' }
       },
       {
+        path: 'smart-square',
+        name: 'SmartSquare',
+        component: () => import('@/views/smart-square/index.vue'),
+        meta: { title: '智能广场', icon: 'Opportunity', requiresAuth: true }
+      },
+      {
         path: 'approval/:id',
         name: 'ApprovalDesk',
         component: () => import('@/views/approval/index.vue'),
-        meta: { title: '智能审批台', icon: 'Document', hidden: true }
+        meta: { title: '智能审批台', icon: 'Document', hidden: true, breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: '智能审批助手' }] }
       },
       {
         path: 'ai-audit/:id',
         name: 'AiAudit',
         component: () => import('@/views/ai-audit/index.vue'),
-        meta: { title: 'AI审核详情', icon: 'MagicStick', hidden: true }
+        meta: { title: 'AI审核详情', icon: 'MagicStick', hidden: true, breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: 'AI审核助手' }] }
       },
       {
         path: 'expense',
         name: 'ExpenseReport',
         component: () => import('@/views/expense/index.vue'),
-        meta: { title: '智能报销', icon: 'Wallet' }
+        meta: { title: '智能报销助手', icon: 'Wallet', breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: '智能报销助手' }] }
       },
       {
         path: 'contract',
         name: 'ContractManage',
         component: () => import('@/views/contract/index.vue'),
-        meta: { title: '智能合同', icon: 'Files' }
+        meta: { title: '智能合同助手', icon: 'Files', breadcrumb: [{ title: '智能体中心', path: '/agent' }, { title: '智能合同助手' }] }
       },
       {
         path: 'dashboard',
@@ -67,6 +73,12 @@ const routes: RouteRecordRaw[] = [
         name: 'DataChat',
         component: () => import('@/views/data-chat/index.vue'),
         meta: { title: '数据智能问答', icon: 'ChatLineRound', requiresAuth: true }
+      },
+      {
+        path: 'agent',
+        name: 'AgentCenter',
+        component: () => import('@/views/agent/index.vue'),
+        meta: { title: '智能体中心', icon: 'Cpu', requiresAuth: true }
       },
       {
         path: 'system-admin',
