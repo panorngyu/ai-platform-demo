@@ -3,6 +3,20 @@
 // 连接器类型枚举: rest_api / database / message_queue / file_transfer / esb / rpa
 // 连接器状态枚举: running / stopped / error
 
+// ==================== 统一目标系统列表（唯一数据源） ====================
+// 待办中心"来源系统"、智能广场"发起系统"、数据智能问答"数据源系统"、连接器"目标系统"均引用此列表
+
+const targetSystems: any[] = [
+  { id: 1, code: 'oa', name: 'OA审批系统', description: '企业OA办公审批平台', status: 'running', connectorId: 5 },
+  { id: 2, code: 'erp', name: 'ERP系统', description: '企业资源计划综合平台', status: 'running', connectorId: 1 },
+  { id: 3, code: 'crm', name: 'CRM系统', description: '客户关系管理系统', status: 'running', connectorId: 2 },
+  { id: 4, code: 'finance', name: '财务系统', description: '财务报销与预算管理', status: 'running', connectorId: 3 },
+  { id: 5, code: 'contract', name: '合同管理系统', description: '合同全生命周期管理', status: 'stopped', connectorId: 6 },
+  { id: 6, code: 'purchase', name: '采购管理系统', description: '采购申请与供应商管理', status: 'running', connectorId: 8 },
+  { id: 7, code: 'project', name: '项目管理系统', description: '项目立项与进度管控', status: 'running', connectorId: 7 },
+  { id: 8, code: 'asset', name: '资产管理系统', description: '资产登记与变动管理', status: 'running', connectorId: 4 }
+]
+
 // ==================== Mock 数据 ====================
 
 const mockConnectors: any[] = [
@@ -10,7 +24,7 @@ const mockConnectors: any[] = [
     id: 1,
     name: 'ERP系统对接',
     type: 'rest_api',
-    targetType: 'ERP',
+    targetType: 'ERP系统',
     config: {
       host: 'erp.jinmailang.com',
       port: 8443,
@@ -32,7 +46,7 @@ const mockConnectors: any[] = [
     id: 2,
     name: 'CRM系统对接',
     type: 'rest_api',
-    targetType: 'CRM',
+    targetType: 'CRM系统',
     config: {
       host: 'crm.jinmailang.com',
       port: 443,
@@ -55,7 +69,7 @@ const mockConnectors: any[] = [
     id: 3,
     name: 'MySQL-财务库',
     type: 'database',
-    targetType: 'MySQL',
+    targetType: '财务系统',
     config: {
       host: '10.20.30.11',
       port: 3306,
@@ -74,9 +88,9 @@ const mockConnectors: any[] = [
   },
   {
     id: 4,
-    name: 'Oracle-HR库',
+    name: 'Oracle-资产库',
     type: 'database',
-    targetType: 'Oracle',
+    targetType: '资产管理系统',
     config: {
       host: '10.20.30.21',
       port: 1521,
@@ -95,9 +109,9 @@ const mockConnectors: any[] = [
   },
   {
     id: 5,
-    name: 'RabbitMQ-审批通知',
+    name: 'RabbitMQ-OA审批通知',
     type: 'message_queue',
-    targetType: 'RabbitMQ',
+    targetType: 'OA审批系统',
     config: {
       host: 'mq.jinmailang.com',
       port: 5672,
@@ -118,7 +132,7 @@ const mockConnectors: any[] = [
     id: 6,
     name: 'SFTP-合同归档',
     type: 'file_transfer',
-    targetType: 'SFTP',
+    targetType: '合同管理系统',
     config: {
       host: 'sftp.jinmailang.com',
       port: 22,
@@ -137,9 +151,9 @@ const mockConnectors: any[] = [
   },
   {
     id: 7,
-    name: 'WebService-OA系统',
+    name: 'WebService-项目系统',
     type: 'esb',
-    targetType: 'OA',
+    targetType: '项目管理系统',
     config: {
       wsdlUrl: 'http://oa.jinmailang.com/services/OaService?wsdl',
       namespace: 'http://oa.jinmailang.com',
@@ -156,9 +170,9 @@ const mockConnectors: any[] = [
   },
   {
     id: 8,
-    name: 'RPA-MES系统',
+    name: 'RPA-采购对账机器人',
     type: 'rpa',
-    targetType: 'MES',
+    targetType: '采购管理系统',
     config: {
       robotName: 'MES_Sync_Robot',
       robotIp: '10.20.40.55',
@@ -179,10 +193,10 @@ const mockConnectors: any[] = [
 const mockTemplates: any[] = [
   {
     id: 'tpl_001',
-    name: '用友U8',
+    name: 'OA审批接口模板',
     type: 'rest_api',
-    targetType: 'ERP',
-    description: '用友U8 ERP系统标准对接模板，支持采购、销售、库存等单据同步',
+    targetType: 'OA审批系统',
+    description: 'OA审批系统标准对接模板，支持报销、请假、出差等流程同步',
     configTemplate: {
       host: '',
       port: 8080,
@@ -198,10 +212,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_002',
-    name: '金蝶K3',
+    name: 'ERP订单接口模板',
     type: 'rest_api',
-    targetType: 'ERP',
-    description: '金蝶K3 Cloud ERP系统对接模板，支持凭证、科目、物料同步',
+    targetType: 'ERP系统',
+    description: 'ERP系统标准对接模板，支持采购、销售、库存等单据同步',
     configTemplate: {
       host: '',
       port: 8090,
@@ -217,10 +231,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_003',
-    name: 'SAP',
+    name: 'CRM客户接口模板',
     type: 'rest_api',
-    targetType: 'ERP',
-    description: 'SAP S/4HANA 系统对接模板，支持RFC/REST接口',
+    targetType: 'CRM系统',
+    description: 'CRM系统标准对接模板，支持客户、商机、合同同步',
     configTemplate: {
       host: '',
       port: 443,
@@ -237,10 +251,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_004',
-    name: 'MySQL通用',
+    name: '财务数据库模板',
     type: 'database',
-    targetType: 'MySQL',
-    description: 'MySQL数据库通用连接模板，支持主流5.7/8.0版本',
+    targetType: '财务系统',
+    description: '财务系统数据库通用连接模板，支持MySQL/Oracle/PostgreSQL',
     configTemplate: {
       host: '',
       port: 3306,
@@ -255,10 +269,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_005',
-    name: 'Oracle通用',
+    name: '资产数据库模板',
     type: 'database',
-    targetType: 'Oracle',
-    description: 'Oracle数据库通用连接模板，支持11g/12c/19c版本',
+    targetType: '资产管理系统',
+    description: '资产管理系统数据库通用连接模板，支持主流数据库版本',
     configTemplate: {
       host: '',
       port: 1521,
@@ -273,10 +287,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_006',
-    name: 'Kafka通用',
+    name: '采购消息队列模板',
     type: 'message_queue',
-    targetType: 'Kafka',
-    description: 'Apache Kafka消息队列通用对接模板',
+    targetType: '采购管理系统',
+    description: '采购管理系统消息队列通用对接模板，支持RabbitMQ/Kafka',
     configTemplate: {
       brokers: '',
       topic: '',
@@ -290,28 +304,10 @@ const mockTemplates: any[] = [
   },
   {
     id: 'tpl_007',
-    name: 'RabbitMQ通用',
-    type: 'message_queue',
-    targetType: 'RabbitMQ',
-    description: 'RabbitMQ消息队列通用对接模板，支持topic模式',
-    configTemplate: {
-      host: '',
-      port: 5672,
-      virtualHost: '/',
-      username: '',
-      password: '',
-      queueName: '',
-      exchange: '',
-      routingKey: ''
-    },
-    icon: 'icon-rabbitmq'
-  },
-  {
-    id: 'tpl_008',
-    name: 'SFTP通用',
+    name: '合同文件传输模板',
     type: 'file_transfer',
-    targetType: 'SFTP',
-    description: 'SFTP文件传输通用对接模板，支持定时同步',
+    targetType: '合同管理系统',
+    description: '合同管理系统文件传输通用对接模板，支持SFTP/FTP',
     configTemplate: {
       host: '',
       port: 22,
@@ -323,6 +319,26 @@ const mockTemplates: any[] = [
       schedule: '0 2 * * *'
     },
     icon: 'icon-sftp'
+  },
+  {
+    id: 'tpl_008',
+    name: '项目ESB服务模板',
+    type: 'esb',
+    targetType: '项目管理系统',
+    description: '项目管理系统ESB服务通用对接模板，支持WSDL/REST',
+    configTemplate: {
+      host: '',
+      port: 443,
+      protocol: 'https',
+      basePath: '/sap/opu/odata',
+      username: '',
+      password: '',
+      authType: 'basic',
+      client: '800',
+      timeout: 60000,
+      retryTimes: 3
+    },
+    icon: 'icon-sap'
   }
 ]
 
@@ -349,13 +365,20 @@ function generateSyncRecords(connectorId: number): any[] {
 // ==================== 服务实现 ====================
 
 export const connectorService = {
+  // ---------- 统一目标系统列表 ----------
+
+  // 获取目标系统列表（全量）
+  async getTargetSystems(): Promise<any[]> {
+    return targetSystems
+  },
+
   // ---------- 连接器 CRUD ----------
 
   // 获取连接器列表（支持分页和类型筛选）
   async getConnectors(query: any = {}): Promise<any> {
     const page = parseInt(query.page || '1', 10)
     const pageSize = parseInt(query.pageSize || '10', 10)
-    const { type, status } = query
+    const { type, status, targetType } = query
 
     let list = [...mockConnectors]
     if (type) {
@@ -363,6 +386,9 @@ export const connectorService = {
     }
     if (status) {
       list = list.filter((c) => c.status === status)
+    }
+    if (targetType) {
+      list = list.filter((c) => c.targetType === targetType)
     }
 
     const total = list.length
