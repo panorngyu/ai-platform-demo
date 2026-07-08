@@ -367,4 +367,62 @@ router.get('/logs/stats', async (req: Request, res: Response) => {
   }
 })
 
+// ============================================================
+// G. 第三方系统管理
+// ============================================================
+
+// 获取系统列表
+router.get('/third-party/list', async (req: Request, res: Response) => {
+  try {
+    const data = await systemAdminService.getThirdPartySystems()
+    res.json(success(data))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
+// 获取单个系统详情
+router.get('/third-party/:id', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id)
+    const data = await systemAdminService.getThirdPartySystemDetail(id)
+    res.json(success(data))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
+// 更新系统配置参数
+router.put('/third-party/:id/config', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id)
+    const data = await systemAdminService.updateThirdPartySystemConfig(id, req.body)
+    res.json(success(data, '系统配置更新成功'))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
+// 测试系统连接
+router.post('/third-party/:id/test-connection', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id)
+    const data = await systemAdminService.testThirdPartyConnection(id)
+    res.json(success(data))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
+// 切换系统启用/禁用
+router.put('/third-party/:id/toggle', async (req: Request, res: Response) => {
+  try {
+    const id = parseInt(req.params.id)
+    const data = await systemAdminService.toggleThirdPartySystem(id)
+    res.json(success(data))
+  } catch (error) {
+    res.json(fail((error as Error).message))
+  }
+})
+
 export default router
