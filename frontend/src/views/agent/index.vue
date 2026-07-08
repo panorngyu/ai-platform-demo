@@ -859,12 +859,12 @@ onMounted(() => {
               <el-row :gutter="16">
                 <el-col :span="8">
                   <el-form-item label="流程名称">
-                    <el-input v-model="dialogForm.workflow.name" placeholder="输入工作流名称" />
+                    <el-input v-model="dialogForm.workflow!.name" placeholder="输入工作流名称" />
                   </el-form-item>
                 </el-col>
                 <el-col :span="8">
                   <el-form-item label="触发方式">
-                    <el-select v-model="dialogForm.workflow.triggerType" style="width: 100%">
+                    <el-select v-model="dialogForm.workflow!.triggerType" style="width: 100%">
                       <el-option label="手动触发" value="manual" />
                       <el-option label="API触发" value="api" />
                       <el-option label="定时触发" value="scheduled" />
@@ -878,7 +878,7 @@ onMounted(() => {
                 </el-col>
               </el-row>
               <el-form-item label="流程描述">
-                <el-input v-model="dialogForm.workflow.description" placeholder="工作流用途说明" />
+                <el-input v-model="dialogForm.workflow!.description" placeholder="工作流用途说明" />
               </el-form-item>
             </el-form>
           </div>
