@@ -21,6 +21,10 @@ import {
   type FormField,
   type FormFillResult
 } from '@/api/smartSquare'
+import {
+  getTargetSystems,
+  type TargetSystem
+} from '@/api/connector'
 
 /* ============ 响应式状态 ============ */
 const inputText = ref('')
@@ -37,26 +41,28 @@ const inputRef = ref<any>(null)
 // 表单数据（双向绑定）
 const formData = reactive<Record<string, string>>({})
 
-/* ============ 可选系统列表 ============ */
-interface TargetSystem {
-  id: number
-  name: string
-  code: string
-  description: string
-  status: string
-  processTypes: string[]  // 该系统支持的流程类型
-}
-
-const systems = ref<TargetSystem[]>([
-  { id: 1, name: 'OA审批系统', code: 'oa', description: '企业OA办公审批平台', status: 'running', processTypes: ['expense', 'leave', 'travel'] },
-  { id: 2, name: '合同管理系统', code: 'contract', description: '合同全生命周期管理', status: 'running', processTypes: ['contract'] },
-  { id: 3, name: '采购管理系统', code: 'purchase', description: '采购申请与供应商管理', status: 'running', processTypes: ['purchase'] },
-  { id: 4, name: '项目管理系统', code: 'project', description: '项目立项与进度管控', status: 'running', processTypes: ['project'] },
-  { id: 5, name: 'ERP系统', code: 'erp', description: '企业资源计划综合平台', status: 'running', processTypes: ['expense', 'purchase', 'project'] },
-  { id: 6, name: '财务系统', code: 'finance', description: '财务报销与预算管理', status: 'stopped', processTypes: ['expense'] }
-])
-
+/* ============ 可选系统列表（从后端统一目标系统列表获取） ============ */
+const systems = ref<TargetSystem[]>([])
 const selectedSystemId = ref<number | undefined>(undefined)
+
+async function fetchSystems() {
+  try {
+    const res = await getTargetSystems()
+    systems.value = res.data || []
+  } catch (e) {
+    // 兜底数据：与已接入系统列表保持一致
+    systems.value = [
+      { id: 1, code: 'oa', name: 'OA审批系统', description: '企业OA办公审批平台', status: 'running' },
+      { id: 2, code: 'erp', name: 'ERP系统', description: '企业资源计划综合平台', status: 'running' },
+      { id: 3, code: 'crm', name: 'CRM系统', description: '客户关系管理系统', status: 'running' },
+      { id: 4, code: 'finance', name: '财务系统', description: '财务报销与预算管理', status: 'running' },
+      { id: 5, code: 'contract', name: '合同管理系统', description: '合同全生命周期管理', status: 'stopped' },
+      { id: 6, code: 'purchase', name: '采购管理系统', description: '采购申请与供应商管理', status: 'running' },
+      { id: 7, code: 'project', name: '项目管理系统', description: '项目立项与进度管控', status: 'running' },
+      { id: 8, code: 'asset', name: '资产管理系统', description: '资产登记与变动管理', status: 'running' }
+    ]
+  }
+}
 
 function currentSystemName() {
   if (!selectedSystemId.value) return 'AI自动匹配'
@@ -361,6 +367,7 @@ async function scrollToBottom() {
 
 /* ============ 生命周期 ============ */
 onMounted(() => {
+  fetchSystems()
   // 添加一些示例历史记录
   historyList.value = [
     { id: 1, type: 'expense', name: '报销审批', time: '07/07 09:30', status: 'approved' },
